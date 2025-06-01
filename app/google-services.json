@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "377135304443",
+    "project_id": "notifyu-82ee4",
+    "storage_bucket": "notifyu-82ee4.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:377135304443:android:90b33a022ab005c50aaa5e",
+        "android_client_info": {
+          "package_name": "com.notifyu.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBq3ID9VHGz4XzqhcJiesUmUHPkwlbjh08"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

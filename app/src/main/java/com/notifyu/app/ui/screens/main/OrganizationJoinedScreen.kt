@@ -1,11 +1,13 @@
 package com.notifyu.app.ui.screens.main
 
+import android.R
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -23,30 +25,33 @@ import com.notifyu.app.navigation.navgraph.MainScreenRoute
 
 @Composable
 fun OrganizationJoinedScreen(navController: NavController) {
-    LazyColumn {
-        items(20) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(Color.White)
-                    .clickable{navController.navigate(MainScreenRoute.EventChatScreen.route)}
-                    .padding(vertical = 8.dp, horizontal = 16.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Box(
+    Column(modifier = Modifier.fillMaxSize().background(Color.Red)) {
+        LazyColumn {
+            items(2) {
+                Row(
                     modifier = Modifier
-                        .size(35.dp)
-                        .background(color = Color.Green, shape = CircleShape)
-                )
-                Spacer(modifier = Modifier.padding(horizontal = 8.dp))
-                Column {
-                    Text(text = "Name", fontSize = 16.sp)
-                    Text(text = "Announcement", fontSize = 14.sp, color = Color.Gray)
-                }
-                Spacer(modifier = Modifier.weight(1f))
-                Text(text = "Set", fontSize = 14.sp)
+                        .fillMaxWidth()
+                        .background(Color.White)
+                        .clickable{navController.navigate(MainScreenRoute.EventChatScreen.route)}
+                        .padding(vertical = 8.dp, horizontal = 16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(35.dp)
+                            .background(color = Color.Green, shape = CircleShape)
+                    )
+                    Spacer(modifier = Modifier.padding(horizontal = 8.dp))
+                    Column {
+                        Text(text = "Name", fontSize = 16.sp)
+                        Text(text = "Announcement", fontSize = 14.sp, color = Color.Gray)
+                    }
+                    Spacer(modifier = Modifier.weight(1f))
+                    Text(text = "Set", fontSize = 14.sp)
 
+                }
             }
         }
     }
+
 }

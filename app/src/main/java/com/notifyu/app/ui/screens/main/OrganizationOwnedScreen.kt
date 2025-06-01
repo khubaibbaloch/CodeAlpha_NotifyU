@@ -24,7 +24,7 @@ import com.notifyu.app.navigation.navgraph.MainScreenRoute
 @Composable
 fun OrganizationOwnedScreen(navController: NavController) {
     LazyColumn {
-        items(20) {
+        items(2) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()

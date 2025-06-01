@@ -1,24 +1,25 @@
 package com.notifyu.app.navigation.navgraph
 
-import androidx.compose.runtime.Composable
-import androidx.navigation.NavController
 import androidx.navigation.NavGraphBuilder
+import androidx.navigation.NavHostController
 import androidx.navigation.compose.composable
 import androidx.navigation.navigation
 import com.notifyu.app.ui.screens.events.EventChatScreen
-import com.notifyu.app.ui.screens.main.MainScreen
+import com.notifyu.app.ui.screens.main.CreateJoinOrgScreen
+import com.notifyu.app.ui.screens.main.HomeScreen
 import com.notifyu.app.ui.screens.main.OrganizationJoinedScreen
 import com.notifyu.app.ui.screens.main.OrganizationOwnedScreen
+import com.notifyu.app.viewmodel.MainViewModel
 
 
-fun NavGraphBuilder.mainNavHost(navController: NavController) {
+fun NavGraphBuilder.mainNavHost(navController: NavHostController,mainViewModel: MainViewModel) {
     navigation(
-        startDestination = MainScreenRoute.OrganizationOwnedScreen.route,
+        startDestination = MainScreenRoute.CreateJoinOrgScreen.route,
         route = MainScreenRoute.MainScreenRoot.route
     ) {
-//        composable(MainScreenRoute.MainScreen.route) {
-//            MainScreen(navController = navController)
-//        }
+        composable(MainScreenRoute.HomeScreen.route) {
+            HomeScreen(navController = navController, mainViewModel = mainViewModel)
+        }
         composable(MainScreenRoute.OrganizationJoinedScreen.route) {
             OrganizationJoinedScreen(navController = navController)
         }
@@ -27,6 +28,9 @@ fun NavGraphBuilder.mainNavHost(navController: NavController) {
         }
         composable(MainScreenRoute.EventChatScreen.route) {
             EventChatScreen()
+        }
+        composable(MainScreenRoute.CreateJoinOrgScreen.route) {
+            CreateJoinOrgScreen(navController,mainViewModel)
         }
     }
 }
