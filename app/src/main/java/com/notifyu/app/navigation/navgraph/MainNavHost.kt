@@ -14,7 +14,7 @@ import com.notifyu.app.viewmodel.MainViewModel
 
 fun NavGraphBuilder.mainNavHost(navController: NavHostController,mainViewModel: MainViewModel) {
     navigation(
-        startDestination = MainScreenRoute.CreateJoinOrgScreen.route,
+        startDestination = MainScreenRoute.HomeScreen.route,
         route = MainScreenRoute.MainScreenRoot.route
     ) {
         composable(MainScreenRoute.HomeScreen.route) {
@@ -24,10 +24,10 @@ fun NavGraphBuilder.mainNavHost(navController: NavHostController,mainViewModel: 
             OrganizationJoinedScreen(navController = navController)
         }
         composable(MainScreenRoute.OrganizationOwnedScreen.route) {
-            OrganizationOwnedScreen(navController = navController)
+            OrganizationOwnedScreen(navController = navController,mainViewModel = mainViewModel)
         }
         composable(MainScreenRoute.EventChatScreen.route) {
-            EventChatScreen()
+            EventChatScreen(navController,mainViewModel)
         }
         composable(MainScreenRoute.CreateJoinOrgScreen.route) {
             CreateJoinOrgScreen(navController,mainViewModel)

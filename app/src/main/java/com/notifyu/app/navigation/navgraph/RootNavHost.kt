@@ -10,7 +10,7 @@ import com.notifyu.app.viewmodel.MainViewModel
 fun RootNavHost(navHostController: NavHostController,mainViewModel: MainViewModel) {
     NavHost(
         navController = navHostController,
-        startDestination = MainScreenRoute.MainScreenRoot.route,
+        startDestination = AuthScreenRoute.AuthScreenRoot.route,
         route = "Root"
     ) {
         authNavHost(navController = navHostController,mainViewModel = mainViewModel)

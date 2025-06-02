@@ -21,7 +21,7 @@ import com.notifyu.app.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun EventChatScreenTopBar() {
+fun EventChatScreenTopBar(title: String) {
     TopAppBar(
         navigationIcon = {
             Icon(
@@ -35,7 +35,7 @@ fun EventChatScreenTopBar() {
         },
         title = {
             Text(
-                text = "Owned",
+                text = title,
                 fontSize = 16.sp,
                 color = Color.Black,
                 modifier = Modifier.padding(horizontal = 16.dp)

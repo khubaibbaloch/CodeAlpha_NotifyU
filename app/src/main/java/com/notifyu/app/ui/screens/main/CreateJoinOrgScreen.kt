@@ -1,10 +1,14 @@
 package com.notifyu.app.ui.screens.main
 
+import android.R
+import android.widget.Toast
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
@@ -16,13 +20,18 @@ import androidx.navigation.NavController
 import com.notifyu.app.viewmodel.MainViewModel
 import androidx.compose.runtime.*
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
+import com.notifyu.app.navigation.navgraph.MainScreenRoute
+import com.notifyu.app.ui.theme.PrimaryColor
+import java.nio.file.WatchEvent
 
 @Composable
 fun CreateJoinOrgScreen(navController: NavController, mainViewModel: MainViewModel) {
 
-    val isAddOrg by remember { mutableStateOf(true) }
+    val context = LocalContext.current
+    val isAddOrg by mainViewModel.isAddOrg.collectAsState()
     val organizationName = remember { mutableStateOf("") }
     val organizationCode = remember { mutableStateOf("") }
 
@@ -32,17 +41,46 @@ fun CreateJoinOrgScreen(navController: NavController, mainViewModel: MainViewMod
             .fillMaxSize()
     ) {
         if (isAddOrg) {
-            CreateOrg(organizationName = organizationName, organizationCode = organizationCode)
+            CreateOrg(
+                organizationName = organizationName,
+                organizationCode = organizationCode,
+                onResult = {
+                    mainViewModel.addOrganization(
+                        name = organizationName.value,
+                        code = organizationCode.value,
+                        onResult = { isSuccess, message ->
+                            Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+                            if (isSuccess){
+                                navController.navigate(MainScreenRoute.HomeScreen.route)
+                            }
+                        })
+                })
         } else {
-            JoinOrg()
+            JoinOrg(
+                organizationName = organizationName,
+                organizationCode = organizationCode,
+                onClick = {
+                    mainViewModel.joinOrganizationByNameAndCode(
+                        name = organizationName.value,
+                        code = organizationCode.value,
+                        onResult = { isSuccess, message ->
+                            Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+                            if (isSuccess) {
+                                navController.navigate(MainScreenRoute.HomeScreen.route)
+                            }
+                        })
+                })
         }
     }
 }
 
 @Composable
-fun CreateOrg(organizationName: MutableState<String>, organizationCode: MutableState<String>) {
+fun CreateOrg(
+    organizationName: MutableState<String>,
+    organizationCode: MutableState<String>,
+    onResult: () -> Unit,
+) {
     Column(modifier = Modifier.fillMaxSize()) {
-        Text(text = "Add Organization")
         OutlinedTextField(
             value = organizationName.value,
             onValueChange = { organizationName.value = it },
@@ -112,13 +150,100 @@ fun CreateOrg(organizationName: MutableState<String>, organizationCode: MutableS
                 )
         )
 
-        Button(onClick = {}) {
-            Text(text = "Create organization")
+        Button(
+            onClick = { onResult() },
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(4.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor)
+        ) {
+            Text(text = "Create organization", color = Color.White)
         }
     }
 }
 
 @Composable
-fun JoinOrg() {
+fun JoinOrg(
+    organizationName: MutableState<String>,
+    organizationCode: MutableState<String>,
+    onClick: () -> Unit,
+) {
+    Column(modifier = Modifier.fillMaxSize()) {
+        OutlinedTextField(
+            value = organizationName.value,
+            onValueChange = { organizationName.value = it },
+            label = { Text("Organization name") },
+            textStyle = TextStyle(color = Color.Black),
+            modifier = Modifier.fillMaxWidth(),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedTextColor = Color.Black,
+                unfocusedTextColor = Color.Black,
+                errorTextColor = Color.Red,
 
+                cursorColor = Color.Black,
+                errorCursorColor = Color.Red,
+
+                focusedBorderColor = Color.Black,
+                unfocusedBorderColor = Color.Gray,
+                errorBorderColor = Color.Red,
+
+                focusedLeadingIconColor = Color.Black,
+                unfocusedLeadingIconColor = Color.Gray,
+                errorLeadingIconColor = Color.Red,
+
+                focusedTrailingIconColor = Color.Black,
+                unfocusedTrailingIconColor = Color.Gray,
+                disabledTrailingIconColor = Color.Gray,
+                errorTrailingIconColor = Color.Red,
+
+                focusedLabelColor = Color.Black,
+                unfocusedLabelColor = Color.Gray,
+                disabledLabelColor = Color.Gray,
+                errorLabelColor = Color.Red,
+
+                )
+        )
+        OutlinedTextField(
+            value = organizationCode.value,
+            onValueChange = { organizationCode.value = it },
+            label = { Text("Organization code") },
+            textStyle = TextStyle(color = Color.Black),
+            modifier = Modifier.fillMaxWidth(),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedTextColor = Color.Black,
+                unfocusedTextColor = Color.Black,
+                errorTextColor = Color.Red,
+
+                cursorColor = Color.Black,
+                errorCursorColor = Color.Red,
+
+                focusedBorderColor = Color.Black,
+                unfocusedBorderColor = Color.Gray,
+                errorBorderColor = Color.Red,
+
+                focusedLeadingIconColor = Color.Black,
+                unfocusedLeadingIconColor = Color.Gray,
+                errorLeadingIconColor = Color.Red,
+
+                focusedTrailingIconColor = Color.Black,
+                unfocusedTrailingIconColor = Color.Gray,
+                disabledTrailingIconColor = Color.Gray,
+                errorTrailingIconColor = Color.Red,
+
+                focusedLabelColor = Color.Black,
+                unfocusedLabelColor = Color.Gray,
+                disabledLabelColor = Color.Gray,
+                errorLabelColor = Color.Red,
+
+                )
+        )
+
+        Button(
+            onClick = { onClick() },
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(4.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor)
+        ) {
+            Text(text = "Join organization", color = Color.White)
+        }
+    }
 }

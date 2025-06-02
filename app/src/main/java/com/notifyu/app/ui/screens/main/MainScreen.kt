@@ -72,8 +72,10 @@ import com.notifyu.app.ui.theme.BackgroundColor
 import com.notifyu.app.ui.theme.PrimaryColor
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
+import com.notifyu.app.data.model.Organization
 import com.notifyu.app.ui.theme.SurfaceColor
 import com.notifyu.app.viewmodel.MainViewModel
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -89,6 +91,16 @@ fun MainScreen(navController: NavHostController, mainViewModel: MainViewModel) {
     val currentRoute = currentBackStackEntry?.destination?.route
 
     var showBottomSheet by remember { mutableStateOf(false) }
+
+    val organizations by mainViewModel.organizationsOwned.collectAsState()
+    val organizationId by mainViewModel.onOrganizationsClick.collectAsState()
+
+    val organizationsMemberOf by mainViewModel.organizationsMemberOf.collectAsState()
+
+    val selectedOrganization = remember(organizations, organizationsMemberOf, organizationId) {
+        organizations.find { it.id == organizationId }
+            ?: organizationsMemberOf.find { it.id == organizationId }
+    }
 
 
 
@@ -112,7 +124,7 @@ fun MainScreen(navController: NavHostController, mainViewModel: MainViewModel) {
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Text(
-                        text = "${mainViewModel.auth.currentUser!!.email}",
+                        text = "${mainViewModel.auth.currentUser?.email}",
                         fontSize = 14.sp,
                         fontWeight = FontWeight.W300
                     )
@@ -138,25 +150,29 @@ fun MainScreen(navController: NavHostController, mainViewModel: MainViewModel) {
                 }
                 Spacer(modifier = Modifier.padding(vertical = 24.dp))
 
-
                 OrganizationOwned(
+                    organizations = organizations,
                     isOrganizationOwned = isOrganizationOwned.value,
                     onOwnedClick = {
                         navController.navigate(MainScreenRoute.OrganizationOwnedScreen.route)
                         isOrganizationOwned.value = true
                         isOrganizationJoined.value = false
-                    }, onOrganizationOwnedClick = {
+                    },
+                    onOrganizationOwnedClick = { organization ->
+                        mainViewModel.updateOnOrganizationClick(organization.id)
                         navController.navigate(MainScreenRoute.EventChatScreen.route)
                     })
                 Spacer(modifier = Modifier.padding(vertical = 8.dp))
                 OrganizationJoined(
+                    organizationsMemberOf = organizationsMemberOf,
                     isOrganizationJoined = isOrganizationJoined.value,
                     onJoined = {
                         navController.navigate(MainScreenRoute.OrganizationJoinedScreen.route)
                         isOrganizationJoined.value = true
                         isOrganizationOwned.value = false
                     },
-                    onOrganizationJoinedClicked = {
+                    onOrganizationJoinedClicked = { organization ->
+                        mainViewModel.updateOnOrganizationClick(organization.id)
                         navController.navigate(MainScreenRoute.EventChatScreen.route)
                     })
 
@@ -164,6 +180,24 @@ fun MainScreen(navController: NavHostController, mainViewModel: MainViewModel) {
 
             if (showBottomSheet) {
                 BottomSheet(
+                    onCreateClick = {
+                        scope.launch {
+                            showBottomSheet = false
+                            drawerState.close()
+                            mainViewModel.updateAddOrg(true)
+                            navController.navigate(MainScreenRoute.CreateJoinOrgScreen.route)
+                        }
+
+                    },
+                    onJoinClick = {
+                        scope.launch {
+                            showBottomSheet = false
+                            drawerState.close()
+                            mainViewModel.updateAddOrg(false)
+                            navController.navigate(MainScreenRoute.CreateJoinOrgScreen.route)
+                        }
+
+                    },
                     showSheet = showBottomSheet,
                     onDismissRequest = { showBottomSheet = false }
                 )
@@ -176,7 +210,7 @@ fun MainScreen(navController: NavHostController, mainViewModel: MainViewModel) {
             topBar = {
                 when (currentRoute) {
                     MainScreenRoute.EventChatScreen.route -> {
-                        EventChatScreenTopBar()
+                        EventChatScreenTopBar(title = selectedOrganization!!.name)
                     }
 
                     MainScreenRoute.OrganizationOwnedScreen.route -> {
@@ -186,15 +220,13 @@ fun MainScreen(navController: NavHostController, mainViewModel: MainViewModel) {
                     MainScreenRoute.HomeScreen.route -> {
                         MainScreenTopBar(title = "Notifyu")
                     }
+
+                    MainScreenRoute.CreateJoinOrgScreen.route -> {
+                        MainScreenTopBar(title = "Notifyu")
+                    }
                 }
             },
-            bottomBar = {
-                BottomSheet(
-                    showSheet = false,
-                    onDismissRequest = { showBottomSheet = false }
-                )
-            },
-            containerColor = Color.Gray.copy(0.1f)
+            containerColor = Color.White
         ) { innerPadding ->
             Column(modifier = Modifier.padding(innerPadding)) {
                 RootNavHost(navHostController = navController, mainViewModel = mainViewModel)
@@ -206,9 +238,10 @@ fun MainScreen(navController: NavHostController, mainViewModel: MainViewModel) {
 
 @Composable
 fun OrganizationOwned(
-    onOwnedClick: () -> Unit,
+    organizations: List<Organization>,
     isOrganizationOwned: Boolean,
-    onOrganizationOwnedClick: () -> Unit,
+    onOwnedClick: () -> Unit,
+    onOrganizationOwnedClick: (Organization) -> Unit,
 ) {
     LazyColumn(modifier = Modifier.fillMaxWidth()) {
         item {
@@ -231,17 +264,22 @@ fun OrganizationOwned(
         item {
             Spacer(modifier = Modifier.padding(vertical = 4.dp))
         }
-        items(5) {
+
+        items(organizations) { organization ->
             Row(
                 modifier = Modifier
-                    .padding(start = 0.dp)
-                    .clickable { onOrganizationOwnedClick() }) {
+                    .fillMaxWidth()
+                    .clickable { onOrganizationOwnedClick(organization) }
+                    .padding(vertical = 8.dp, horizontal = 4.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
                 Icon(
                     painter = painterResource(R.drawable.ic_add),
                     contentDescription = null,
                     modifier = Modifier.size(25.dp)
                 )
-                Text(text = "Add organization", fontSize = 14.sp)
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(text = organization.name, fontSize = 14.sp)
             }
         }
     }
@@ -250,9 +288,10 @@ fun OrganizationOwned(
 
 @Composable
 fun OrganizationJoined(
+    organizationsMemberOf: List<Organization>,
     isOrganizationJoined: Boolean,
     onJoined: () -> Unit,
-    onOrganizationJoinedClicked: () -> Unit,
+    onOrganizationJoinedClicked: (Organization) -> Unit,
 ) {
     LazyColumn {
         item {
@@ -274,18 +313,18 @@ fun OrganizationJoined(
         item {
             Spacer(modifier = Modifier.padding(vertical = 4.dp))
         }
-        items(5) {
+        items(organizationsMemberOf) { organizations ->
             Row(
                 modifier = Modifier
                     .padding(start = 0.dp)
-                    .clickable { onOrganizationJoinedClicked() }) {
+                    .clickable { onOrganizationJoinedClicked(organizations) }) {
 
                 Icon(
                     painter = painterResource(R.drawable.ic_add),
                     contentDescription = null,
                     modifier = Modifier.size(25.dp)
                 )
-                Text(text = "Add organization", fontSize = 14.sp)
+                Text(text = organizations.name, fontSize = 14.sp)
             }
         }
     }
@@ -296,6 +335,8 @@ fun OrganizationJoined(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BottomSheet(
+    onCreateClick: () -> Unit,
+    onJoinClick: () -> Unit,
     showSheet: Boolean,
     onDismissRequest: () -> Unit,
 ) {
@@ -303,10 +344,17 @@ fun BottomSheet(
         skipPartiallyExpanded = true
     )
 
+    val scope = rememberCoroutineScope()
+
 
     if (showSheet) {
         ModalBottomSheet(
-            onDismissRequest = onDismissRequest,
+            onDismissRequest = {
+                scope.launch {
+                    sheetState.hide()
+                    onDismissRequest()
+                }
+            },
             sheetState = sheetState,
             containerColor = Color.White,
             shape = RectangleShape,
@@ -325,7 +373,12 @@ fun BottomSheet(
                 ) {
                     Text("Add organization", fontSize = 18.sp)
                     IconButton(
-                        onClick = {},
+                        onClick = {
+                            scope.launch {
+                                sheetState.hide()
+                                onDismissRequest()
+                            }
+                        },
                         modifier = Modifier.size(30.dp),
                         colors = IconButtonDefaults.iconButtonColors(
                             containerColor = SurfaceColor.copy(
@@ -338,7 +391,9 @@ fun BottomSheet(
                 }
                 Spacer(modifier = Modifier.padding(vertical = 16.dp))
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { onCreateClick() },
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     IconButton(
@@ -362,7 +417,12 @@ fun BottomSheet(
                 HorizontalDivider(modifier = Modifier.padding(start = 55.dp))
                 Spacer(modifier = Modifier.height(32.dp))
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(Color.White)
+                        .clickable {
+                            onJoinClick()
+                        },
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     IconButton(
@@ -373,7 +433,10 @@ fun BottomSheet(
                             )
                         )
                     ) {
-                        Icon(painter = painterResource(R.drawable.ic_left_arrow), contentDescription = null)
+                        Icon(
+                            painter = painterResource(R.drawable.ic_left_arrow),
+                            contentDescription = null
+                        )
                     }
                     Spacer(modifier = Modifier.width(8.dp))
                     Text("Join existing organization", fontSize = 18.sp)
@@ -382,7 +445,12 @@ fun BottomSheet(
                 HorizontalDivider(modifier = Modifier.padding(start = 55.dp))
                 Spacer(modifier = Modifier.height(32.dp))
 
-                TextButton(onClick = {}) {
+                TextButton(onClick = {
+                    scope.launch {
+                        sheetState.hide()
+                        onDismissRequest()
+                    }
+                }) {
                     Text(text = "Cancel", color = PrimaryColor)
                 }
             }
