@@ -3,17 +3,19 @@ package com.notifyu.app.navigation.navgraph
 import androidx.compose.runtime.Composable
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
-import com.notifyu.app.ui.screens.main.MainScreen
+import com.notifyu.app.navigation.navgraph.auth.authNavGraph
+import com.notifyu.app.navigation.navgraph.main.MainScreenRoutes
+import com.notifyu.app.navigation.navgraph.main.mainNavGraph
 import com.notifyu.app.viewmodel.MainViewModel
 
 @Composable
 fun RootNavHost(navHostController: NavHostController,mainViewModel: MainViewModel) {
     NavHost(
         navController = navHostController,
-        startDestination = AuthScreenRoute.AuthScreenRoot.route,
+        startDestination = MainScreenRoutes.MainScreenRoot.route,
         route = "Root"
     ) {
-        authNavHost(navController = navHostController,mainViewModel = mainViewModel)
-        mainNavHost(navController = navHostController, mainViewModel = mainViewModel)
+        authNavGraph(navController = navHostController,mainViewModel = mainViewModel)
+        mainNavGraph(navController = navHostController, mainViewModel = mainViewModel)
     }
 }

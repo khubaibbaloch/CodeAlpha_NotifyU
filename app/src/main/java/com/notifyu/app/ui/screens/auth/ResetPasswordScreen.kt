@@ -35,7 +35,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.notifyu.app.R
-import com.notifyu.app.navigation.navgraph.AuthScreenRoute
+import com.notifyu.app.navigation.navgraph.auth.AuthScreenRoutes
 import com.notifyu.app.ui.screens.auth.components.LottieAnimations
 import com.notifyu.app.ui.theme.BackgroundColor
 import com.notifyu.app.ui.theme.PrimaryColor
@@ -236,7 +236,7 @@ fun ResetPasswordScreen(navController: NavController, mainViewModel: MainViewMod
                         Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
                         if (success) {
                             Toast.makeText(context, "Passwords updated", Toast.LENGTH_SHORT).show()
-                            navController.navigate(AuthScreenRoute.LoginScreen.route)
+                            navController.navigate(AuthScreenRoutes.LoginScreen.route)
                         }
                     }
                 },
@@ -257,7 +257,7 @@ fun ResetPasswordScreen(navController: NavController, mainViewModel: MainViewMod
                     color = PrimaryColor,
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.clickable {
-                        navController.navigate(AuthScreenRoute.LoginScreen.route)
+                        navController.navigate(AuthScreenRoutes.LoginScreen.route)
                     }
                 )
             }

@@ -43,8 +43,8 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.navigation.NavController
 import com.notifyu.app.R
-import com.notifyu.app.navigation.navgraph.AuthScreenRoute
-import com.notifyu.app.navigation.navgraph.MainScreenRoute
+import com.notifyu.app.navigation.navgraph.auth.AuthScreenRoutes
+import com.notifyu.app.navigation.navgraph.main.MainScreenRoutes
 import com.notifyu.app.ui.screens.auth.components.AsyncProgressDialog
 import com.notifyu.app.ui.screens.auth.components.LottieAnimations
 import com.notifyu.app.ui.theme.BackgroundColor
@@ -72,7 +72,7 @@ fun VerifyEmailScreen(navController: NavController, mainViewModel: MainViewModel
     LaunchedEffect(Unit) {
         currentUser?.let { user ->
             if (user.isEmailVerified) {
-                navController.navigate(MainScreenRoute.HomeScreen.route)
+                navController.navigate(MainScreenRoutes.HomeScreen.route)
             }
         }
 
@@ -87,7 +87,7 @@ fun VerifyEmailScreen(navController: NavController, mainViewModel: MainViewModel
                 mainViewModel.checkEmailVerification { isSuccess ->
                     if (isSuccess) {
                         isVerifyingEmail = false
-                        navController.navigate(MainScreenRoute.HomeScreen.route)
+                        navController.navigate(MainScreenRoutes.HomeScreen.route)
                     } else {
                         Toast.makeText(context, "email is not verified", Toast.LENGTH_SHORT).show()
                     }
@@ -191,7 +191,7 @@ fun VerifyEmailScreen(navController: NavController, mainViewModel: MainViewModel
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.clickable {
                         // Navigate to login screen here
-                        navController.navigate(AuthScreenRoute.LoginScreen.route)
+                        navController.navigate(AuthScreenRoutes.LoginScreen.route)
                     }
                 )
             }
@@ -223,7 +223,7 @@ fun AccountVerifyingDialog(isCreatingAccount: Boolean, navController: NavControl
             showDialog = true
             delay(5000) // Simulate account creation time
             showDialog = false
-            navController.navigate(AuthScreenRoute.VerifyEmailScreen.route)
+            navController.navigate(AuthScreenRoutes.VerifyEmailScreen.route)
         }
     }
 

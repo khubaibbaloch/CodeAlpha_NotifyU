@@ -1,6 +1,5 @@
 package com.notifyu.app.ui.screens.main
 
-import android.R
 import android.widget.Toast
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -23,9 +22,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
-import com.notifyu.app.navigation.navgraph.MainScreenRoute
+import com.notifyu.app.navigation.navgraph.main.MainScreenRoutes
 import com.notifyu.app.ui.theme.PrimaryColor
-import java.nio.file.WatchEvent
 
 @Composable
 fun CreateJoinOrgScreen(navController: NavController, mainViewModel: MainViewModel) {
@@ -51,7 +49,7 @@ fun CreateJoinOrgScreen(navController: NavController, mainViewModel: MainViewMod
                         onResult = { isSuccess, message ->
                             Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
                             if (isSuccess){
-                                navController.navigate(MainScreenRoute.HomeScreen.route)
+                                navController.navigate(MainScreenRoutes.HomeScreen.route)
                             }
                         })
                 })
@@ -66,7 +64,7 @@ fun CreateJoinOrgScreen(navController: NavController, mainViewModel: MainViewMod
                         onResult = { isSuccess, message ->
                             Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
                             if (isSuccess) {
-                                navController.navigate(MainScreenRoute.HomeScreen.route)
+                                navController.navigate(MainScreenRoutes.HomeScreen.route)
                             }
                         })
                 })

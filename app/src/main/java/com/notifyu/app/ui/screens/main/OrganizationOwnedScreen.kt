@@ -1,8 +1,8 @@
 package com.notifyu.app.ui.screens.main
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -21,9 +21,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
-import com.notifyu.app.navigation.navgraph.MainScreenRoute
+import com.notifyu.app.navigation.navgraph.main.MainScreenRoutes
 import com.notifyu.app.viewmodel.MainViewModel
 import androidx.compose.runtime.*
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.painterResource
+import com.notifyu.app.ui.theme.SurfaceColor
 
 @Composable
 fun OrganizationOwnedScreen(navController: NavController, mainViewModel: MainViewModel) {
@@ -31,6 +34,20 @@ fun OrganizationOwnedScreen(navController: NavController, mainViewModel: MainVie
     LaunchedEffect(Unit) {
         mainViewModel.fetchOwnedOrganizations()
     }
+    val avatarList = listOf(
+        com.notifyu.app.R.drawable.avatar_index_0,
+        com.notifyu.app.R.drawable.avatar_index_1,
+        com.notifyu.app.R.drawable.avatar_index_2,
+        com.notifyu.app.R.drawable.avatar_index_3,
+        com.notifyu.app.R.drawable.avatar_index_4,
+        com.notifyu.app.R.drawable.avatar_index_5,
+        com.notifyu.app.R.drawable.avatar_index_6,
+        com.notifyu.app.R.drawable.avatar_index_7,
+        com.notifyu.app.R.drawable.avatar_index_8,
+        com.notifyu.app.R.drawable.avatar_index_9,
+    )
+
+
     LazyColumn {
         items(organizationOwned) { organizations ->
             Row(
@@ -39,15 +56,19 @@ fun OrganizationOwnedScreen(navController: NavController, mainViewModel: MainVie
                     .background(Color.White)
                     .clickable {
                         mainViewModel.updateOnOrganizationClick(organizations.id)
-                        navController.navigate(MainScreenRoute.EventChatScreen.route)
+                        navController.navigate(MainScreenRoutes.ChatScreen.route)
                     }
                     .padding(vertical = 8.dp, horizontal = 16.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Box(
+                Image(
+                    painter = painterResource(avatarList[organizations.avatarIndex]),
+                    contentDescription = null,
                     modifier = Modifier
-                        .size(35.dp)
-                        .background(color = Color.Green, shape = CircleShape)
+                        .size(40.dp)
+                        .clip(CircleShape)
+                        .background(SurfaceColor.copy(0.5f))
+
                 )
                 Spacer(modifier = Modifier.padding(horizontal = 8.dp))
                 Column {

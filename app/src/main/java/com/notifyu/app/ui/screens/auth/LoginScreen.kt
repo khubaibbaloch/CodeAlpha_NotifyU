@@ -39,8 +39,8 @@ import com.notifyu.app.ui.screens.auth.components.LottieAnimations
 import com.notifyu.app.ui.theme.BackgroundColor
 import com.notifyu.app.ui.theme.PrimaryColor
 import com.notifyu.app.R
-import com.notifyu.app.navigation.navgraph.AuthScreenRoute
-import com.notifyu.app.navigation.navgraph.MainScreenRoute
+import com.notifyu.app.navigation.navgraph.auth.AuthScreenRoutes
+import com.notifyu.app.navigation.navgraph.main.MainScreenRoutes
 import com.notifyu.app.viewmodel.MainViewModel
 import androidx.compose.runtime.*
 import com.notifyu.app.ui.screens.auth.components.AsyncProgressDialog
@@ -57,7 +57,6 @@ fun LoginScreen(navController: NavController, mainViewModel: MainViewModel) {
 
     val passwordVisible = remember { mutableStateOf(false) }
 
-    val currentUser by remember { mutableStateOf(mainViewModel.auth.currentUser) }
     var isLoginAccount by remember { mutableStateOf(false) }
 
 
@@ -172,11 +171,12 @@ fun LoginScreen(navController: NavController, mainViewModel: MainViewModel) {
                     color = PrimaryColor,
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.clickable {
+                        val currentUser = mainViewModel.auth.currentUser
                         currentUser?.let { user ->
                             if (user.isEmailVerified) {
-                                navController.navigate(AuthScreenRoute.ResetPasswordScreen.route)
+                                navController.navigate(AuthScreenRoutes.ResetPasswordScreen.route)
                             }else {
-                                navController.navigate(AuthScreenRoute.VerifyEmailScreen.route)
+                                navController.navigate(AuthScreenRoutes.VerifyEmailScreen.route)
                             }
                         } ?: run {
                             Toast.makeText(context, "No user Found", Toast.LENGTH_SHORT).show()
@@ -195,22 +195,18 @@ fun LoginScreen(navController: NavController, mainViewModel: MainViewModel) {
                             password = password.value,
                             onResult = { isSuccess ->
                                 isLoginAccount = false
-                                 currentUser?.let { user ->
-                                    if (isSuccess && user.isEmailVerified){
-                                        navController.navigate(MainScreenRoute.HomeScreen.route)
-                                    }else if (isSuccess && !user.isEmailVerified){
-                                        navController.navigate(AuthScreenRoute.VerifyEmailScreen.route)
-                                    }else{
-                                        Toast.makeText(
-                                            context,
-                                            "Check email or Password",
-                                            Toast.LENGTH_SHORT
-                                        ).show()
+                                val user = mainViewModel.auth.currentUser
+                                if (isSuccess && user != null) {
+                                    if (user.isEmailVerified) {
+                                        navController.navigate(MainScreenRoutes.HomeScreen.route)
+                                    } else {
+                                        navController.navigate(AuthScreenRoutes.VerifyEmailScreen.route)
                                     }
-                                } ?: run {
-                                    Toast.makeText(context, "No user found", Toast.LENGTH_SHORT).show()
+                                } else {
+                                    Toast.makeText(context, "Check email or Password", Toast.LENGTH_SHORT).show()
                                 }
-                            })
+                            }
+                        )
                     }
                 },
                 shape = RoundedCornerShape(4.dp), modifier = Modifier.fillMaxWidth()
@@ -229,7 +225,7 @@ fun LoginScreen(navController: NavController, mainViewModel: MainViewModel) {
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.clickable {
                         // Navigate to login screen here
-                        navController.navigate(AuthScreenRoute.SignupScreen.route)
+                        navController.navigate(AuthScreenRoutes.SignupScreen.route)
                     }
                 )
             }

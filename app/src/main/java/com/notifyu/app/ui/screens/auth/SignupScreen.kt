@@ -5,25 +5,19 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.BasicAlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
@@ -44,12 +38,10 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.notifyu.app.R
-import com.notifyu.app.navigation.navgraph.AuthScreenRoute
-import com.notifyu.app.navigation.navgraph.MainScreenRoute
+import com.notifyu.app.navigation.navgraph.auth.AuthScreenRoutes
+import com.notifyu.app.navigation.navgraph.main.MainScreenRoutes
 import com.notifyu.app.ui.screens.auth.components.AsyncProgressDialog
 import com.notifyu.app.viewmodel.MainViewModel
-import kotlinx.coroutines.delay
-import kotlin.String
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -87,9 +79,9 @@ fun SignupScreen(navController: NavController, mainViewModel: MainViewModel) {
 
     LaunchedEffect(true) {
         if (currentUser != null && currentUser!!.isEmailVerified) {
-            navController.navigate(MainScreenRoute.HomeScreen.route)
+            navController.navigate(MainScreenRoutes.HomeScreen.route)
         } else if (currentUser != null && !currentUser!!.isEmailVerified) {
-            navController.navigate(AuthScreenRoute.VerifyEmailScreen.route)
+            navController.navigate(AuthScreenRoutes.VerifyEmailScreen.route)
 
         }
     }
@@ -289,7 +281,7 @@ fun SignupScreen(navController: NavController, mainViewModel: MainViewModel) {
                             onResult = { isSuccess, message ->
                                 if (isSuccess) {
                                     isCreatingAccount = false
-                                    navController.navigate(AuthScreenRoute.VerifyEmailScreen.route)
+                                    navController.navigate(AuthScreenRoutes.VerifyEmailScreen.route)
                                 } else {
                                     isCreatingAccount = false
                                     Toast.makeText(context, "Error", Toast.LENGTH_SHORT).show()
@@ -318,7 +310,7 @@ fun SignupScreen(navController: NavController, mainViewModel: MainViewModel) {
                     color = PrimaryColor,
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.clickable {
-                        navController.navigate(AuthScreenRoute.LoginScreen.route)
+                        navController.navigate(AuthScreenRoutes.LoginScreen.route)
                     }
                 )
             }
@@ -328,7 +320,7 @@ fun SignupScreen(navController: NavController, mainViewModel: MainViewModel) {
                     trigger = isCreatingAccount,
                     delaySec = 5000,
                     navController = navController,
-                    navigateTo = AuthScreenRoute.VerifyEmailScreen.route,
+                    navigateTo = AuthScreenRoutes.VerifyEmailScreen.route,
                     "Account creating"
                 )
             }

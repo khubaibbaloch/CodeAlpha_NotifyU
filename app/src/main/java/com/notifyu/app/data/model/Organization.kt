@@ -7,6 +7,7 @@ data class Organization(
     val name: String = "",
     val code: String = "",
     val owner: String = "",
+    val avatarIndex :Int = 0,
     val members: List<String> = emptyList(),
     val messages: List<Message> = emptyList()
 )

@@ -1,11 +1,13 @@
-package com.notifyu.app.ui.screens.components
+package com.notifyu.app.ui.screens.main.components
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
@@ -21,17 +23,19 @@ import com.notifyu.app.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MainScreenTopBar(title: String) {
+fun MainScreenTopBar(title: String,onNavigationClick:() -> Unit) {
     TopAppBar(
         navigationIcon = {
-            Icon(
-                painter = painterResource(R.drawable.ic_menu),
-                contentDescription = null,
-                modifier = Modifier
-                    .padding(horizontal = 16.dp)
-                    .size(20.dp),
-                tint = Color.Black
-            )
+            IconButton(onClick = {onNavigationClick()}) {
+                Icon(
+                    painter = painterResource(R.drawable.ic_menu),
+                    contentDescription = null,
+                    modifier = Modifier
+
+                        .size(20.dp),
+                    tint = Color.Black
+                )
+            }
         },
         title = {
             Text(

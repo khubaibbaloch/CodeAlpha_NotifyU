@@ -1,6 +1,5 @@
-package com.notifyu.app.navigation.navgraph
+package com.notifyu.app.navigation.navgraph.auth
 
-import androidx.navigation.NavController
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.composable
@@ -11,21 +10,21 @@ import com.notifyu.app.ui.screens.auth.SignupScreen
 import com.notifyu.app.ui.screens.auth.VerifyEmailScreen
 import com.notifyu.app.viewmodel.MainViewModel
 
-fun NavGraphBuilder.authNavHost(navController: NavHostController,mainViewModel: MainViewModel) {
+fun NavGraphBuilder.authNavGraph(navController: NavHostController, mainViewModel: MainViewModel) {
     navigation(
-        startDestination = AuthScreenRoute.SignupScreen.route,
-        route = AuthScreenRoute.AuthScreenRoot.route
+        startDestination = AuthScreenRoutes.SignupScreen.route,
+        route = AuthScreenRoutes.AuthScreenRoot.route
     ) {
-        composable(AuthScreenRoute.SignupScreen.route) {
+        composable(AuthScreenRoutes.SignupScreen.route) {
             SignupScreen(navController,mainViewModel)
         }
-        composable(AuthScreenRoute.LoginScreen.route) {
+        composable(AuthScreenRoutes.LoginScreen.route) {
             LoginScreen(navController,mainViewModel)
         }
-        composable(AuthScreenRoute.VerifyEmailScreen.route) {
+        composable(AuthScreenRoutes.VerifyEmailScreen.route) {
             VerifyEmailScreen(navController,mainViewModel)
         }
-        composable(AuthScreenRoute.ResetPasswordScreen.route) {
+        composable(AuthScreenRoutes.ResetPasswordScreen.route) {
             ResetPasswordScreen(navController=navController, mainViewModel = mainViewModel)
         }
     }

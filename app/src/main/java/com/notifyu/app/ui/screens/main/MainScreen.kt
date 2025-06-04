@@ -1,15 +1,14 @@
 package com.notifyu.app.ui.screens.main
 
+import android.widget.Toast
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -19,68 +18,47 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.List
-import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material3.BottomSheetDefaults
-import androidx.compose.material3.Button
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.IconButtonDefaults
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.ModalNavigationDrawer
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberDrawerState
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.RectangleShape
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.navigation.NavController
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import com.notifyu.app.R
-import com.notifyu.app.navigation.navgraph.MainScreenRoute
+import com.notifyu.app.navigation.navgraph.main.MainScreenRoutes
 import com.notifyu.app.navigation.navgraph.RootNavHost
-import com.notifyu.app.ui.screens.components.EventChatScreenTopBar
-import com.notifyu.app.ui.screens.components.MainScreenTopBar
-import com.notifyu.app.ui.theme.BackgroundColor
-import com.notifyu.app.ui.theme.PrimaryColor
+import com.notifyu.app.ui.screens.chat.components.EventChatScreenTopBar
+import com.notifyu.app.ui.screens.main.components.MainScreenTopBar
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalContext
 import com.notifyu.app.data.model.Organization
+import com.notifyu.app.data.model.SelectedScreen
+import com.notifyu.app.ui.screens.main.components.JoinCreateOrgBottomSheet
+import com.notifyu.app.ui.screens.main.components.SettingScreenTopBar
 import com.notifyu.app.ui.theme.SurfaceColor
 import com.notifyu.app.viewmodel.MainViewModel
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainScreen(navController: NavHostController, mainViewModel: MainViewModel) {
+
+    val context = LocalContext.current
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
 
@@ -96,18 +74,59 @@ fun MainScreen(navController: NavHostController, mainViewModel: MainViewModel) {
     val organizationId by mainViewModel.onOrganizationsClick.collectAsState()
 
     val organizationsMemberOf by mainViewModel.organizationsMemberOf.collectAsState()
-
+    val currentUser = mainViewModel.auth.currentUser
     val selectedOrganization = remember(organizations, organizationsMemberOf, organizationId) {
         organizations.find { it.id == organizationId }
             ?: organizationsMemberOf.find { it.id == organizationId }
     }
+    val isOwner = remember(selectedOrganization, currentUser) {
+        selectedOrganization?.owner == currentUser?.uid
+    }
+    var isMenuExpanded by remember { mutableStateOf(false) }
 
+    val avatarList = listOf(
+        com.notifyu.app.R.drawable.avatar_index_0,
+        com.notifyu.app.R.drawable.avatar_index_1,
+        com.notifyu.app.R.drawable.avatar_index_2,
+        com.notifyu.app.R.drawable.avatar_index_3,
+        com.notifyu.app.R.drawable.avatar_index_4,
+        com.notifyu.app.R.drawable.avatar_index_5,
+        com.notifyu.app.R.drawable.avatar_index_6,
+        com.notifyu.app.R.drawable.avatar_index_7,
+        com.notifyu.app.R.drawable.avatar_index_8,
+        com.notifyu.app.R.drawable.avatar_index_9,
+    )
+    LaunchedEffect(Unit) {
+        mainViewModel.fetchSelectedScreenForCurrentUser { selectedScreen ->
+            when (selectedScreen) {
+                "owned" -> {
+                    isOrganizationOwned.value = true
+                    isOrganizationJoined.value = false
+                }
+
+                "joined" -> {
+                    isOrganizationJoined.value = true
+                    isOrganizationOwned.value = false
+                }
+
+                "none" -> {
+
+                }
+            }
+        }
+    }
+
+//    BackHandler(enabled = drawerState.isOpen) {
+//        scope.launch {
+//            drawerState.close()
+//        }
+//    }
 
 
     ModalNavigationDrawer(
         modifier = Modifier.statusBarsPadding(),
         drawerState = drawerState,
-        gesturesEnabled = true,
+        gesturesEnabled = drawerState.isOpen,
         drawerContent = {
             Column(
                 modifier = Modifier
@@ -131,7 +150,13 @@ fun MainScreen(navController: NavHostController, mainViewModel: MainViewModel) {
                     Icon(
                         painter = painterResource(R.drawable.ic_setting),
                         contentDescription = null,
-                        modifier = Modifier.size(20.dp)
+                        modifier = Modifier
+                            .size(20.dp)
+                            .clickable {
+                                navController.navigate(
+                                    MainScreenRoutes.SettingScreen.route
+                                )
+                            }
                     )
                 }
                 Spacer(modifier = Modifier.padding(vertical = 24.dp))
@@ -153,39 +178,58 @@ fun MainScreen(navController: NavHostController, mainViewModel: MainViewModel) {
                 OrganizationOwned(
                     organizations = organizations,
                     isOrganizationOwned = isOrganizationOwned.value,
+                    avatarList = avatarList,
                     onOwnedClick = {
-                        navController.navigate(MainScreenRoute.OrganizationOwnedScreen.route)
-                        isOrganizationOwned.value = true
-                        isOrganizationJoined.value = false
+                        scope.launch {
+                            drawerState.close()
+                            mainViewModel.updateSelectedScreen(
+                                mainViewModel.auth.currentUser?.uid ?: "", SelectedScreen.Owned
+                            )
+                            navController.navigate(MainScreenRoutes.OrganizationOwnedScreen.route)
+                        }
+
                     },
                     onOrganizationOwnedClick = { organization ->
-                        mainViewModel.updateOnOrganizationClick(organization.id)
-                        navController.navigate(MainScreenRoute.EventChatScreen.route)
+                        scope.launch {
+                            drawerState.close()
+                            mainViewModel.updateOnOrganizationClick(organization.id)
+                            navController.navigate(MainScreenRoutes.ChatScreen.route)
+                        }
+
                     })
                 Spacer(modifier = Modifier.padding(vertical = 8.dp))
                 OrganizationJoined(
+                    avatarList = avatarList,
                     organizationsMemberOf = organizationsMemberOf,
                     isOrganizationJoined = isOrganizationJoined.value,
                     onJoined = {
-                        navController.navigate(MainScreenRoute.OrganizationJoinedScreen.route)
-                        isOrganizationJoined.value = true
-                        isOrganizationOwned.value = false
+                        scope.launch {
+                            drawerState.close()
+                            mainViewModel.updateSelectedScreen(
+                                mainViewModel.auth.currentUser?.uid ?: "", SelectedScreen.Joined
+                            )
+                            navController.navigate(MainScreenRoutes.OrganizationJoinedScreen.route)
+                        }
+
                     },
                     onOrganizationJoinedClicked = { organization ->
-                        mainViewModel.updateOnOrganizationClick(organization.id)
-                        navController.navigate(MainScreenRoute.EventChatScreen.route)
+                        scope.launch {
+                            drawerState.close()
+                            mainViewModel.updateOnOrganizationClick(organization.id)
+                            navController.navigate(MainScreenRoutes.ChatScreen.route)
+                        }
                     })
 
             }
 
             if (showBottomSheet) {
-                BottomSheet(
+                JoinCreateOrgBottomSheet(
                     onCreateClick = {
                         scope.launch {
                             showBottomSheet = false
                             drawerState.close()
                             mainViewModel.updateAddOrg(true)
-                            navController.navigate(MainScreenRoute.CreateJoinOrgScreen.route)
+                            navController.navigate(MainScreenRoutes.CreateJoinOrgScreen.route)
                         }
 
                     },
@@ -194,7 +238,7 @@ fun MainScreen(navController: NavHostController, mainViewModel: MainViewModel) {
                             showBottomSheet = false
                             drawerState.close()
                             mainViewModel.updateAddOrg(false)
-                            navController.navigate(MainScreenRoute.CreateJoinOrgScreen.route)
+                            navController.navigate(MainScreenRoutes.CreateJoinOrgScreen.route)
                         }
 
                     },
@@ -209,20 +253,67 @@ fun MainScreen(navController: NavHostController, mainViewModel: MainViewModel) {
         Scaffold(
             topBar = {
                 when (currentRoute) {
-                    MainScreenRoute.EventChatScreen.route -> {
-                        EventChatScreenTopBar(title = selectedOrganization!!.name)
+                    MainScreenRoutes.ChatScreen.route -> {
+                        EventChatScreenTopBar(
+                            title = selectedOrganization?.name ?: "",
+                            onNavigationClick = { navController.popBackStack() },
+                            isOwner = isOwner,
+                            isDropDownMenuClicked = isMenuExpanded,
+                            onMoreVertClick = { isMenuExpanded = true },
+                            onDismissRequest = { isMenuExpanded = false },
+                            onLeaveClick = {
+                                isMenuExpanded = false
+                                if (!isOwner) {
+                                    mainViewModel.removeMemberFromOrganization(
+                                        mainViewModel.auth.currentUser?.uid ?: ""
+                                    ) { success, message ->
+                                        Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+                                        if (success) {
+                                            navController.popBackStack()
+                                        }
+                                    }
+                                }
+
+                            }
+                        )
                     }
 
-                    MainScreenRoute.OrganizationOwnedScreen.route -> {
-                        MainScreenTopBar(title = if (isOrganizationJoined.value) "Joined" else "Owned")
+                    MainScreenRoutes.OrganizationOwnedScreen.route -> {
+                        MainScreenTopBar(
+                            title = if (isOrganizationJoined.value) "Joined" else "Owned",
+                            onNavigationClick = {
+                                scope.launch { drawerState.open() }
+                            })
                     }
 
-                    MainScreenRoute.HomeScreen.route -> {
-                        MainScreenTopBar(title = "Notifyu")
+                    MainScreenRoutes.OrganizationJoinedScreen.route -> {
+                        MainScreenTopBar(
+                            title = if (isOrganizationOwned.value) "Owned" else "Joined",
+                            onNavigationClick = { scope.launch { drawerState.open() } })
                     }
 
-                    MainScreenRoute.CreateJoinOrgScreen.route -> {
-                        MainScreenTopBar(title = "Notifyu")
+                    MainScreenRoutes.HomeScreen.route, MainScreenRoutes.CreateJoinOrgScreen.route -> {
+                        MainScreenTopBar(
+                            title = "Notifyu",
+                            onNavigationClick = { scope.launch { drawerState.open() } })
+                    }
+
+                    MainScreenRoutes.SettingScreen.route -> {
+                        SettingScreenTopBar(
+                            title = "Setting",
+                            onNavigationClick = { navController.popBackStack() })
+                    }
+
+                    MainScreenRoutes.DataPrivacyScreen.route -> {
+                        SettingScreenTopBar(
+                            title = "Data and Privacy",
+                            onNavigationClick = { navController.popBackStack() })
+                    }
+
+                    MainScreenRoutes.AboutNotifyuScreen.route -> {
+                        SettingScreenTopBar(
+                            title = "About Notifyu",
+                            onNavigationClick = { navController.popBackStack() })
                     }
                 }
             },
@@ -239,6 +330,7 @@ fun MainScreen(navController: NavHostController, mainViewModel: MainViewModel) {
 @Composable
 fun OrganizationOwned(
     organizations: List<Organization>,
+    avatarList: List<Int>,
     isOrganizationOwned: Boolean,
     onOwnedClick: () -> Unit,
     onOrganizationOwnedClick: (Organization) -> Unit,
@@ -273,10 +365,14 @@ fun OrganizationOwned(
                     .padding(vertical = 8.dp, horizontal = 4.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(
-                    painter = painterResource(R.drawable.ic_add),
+                Image(
+                    painter = painterResource(avatarList[organization.avatarIndex]),
                     contentDescription = null,
-                    modifier = Modifier.size(25.dp)
+                    modifier = Modifier
+                        .size(25.dp)
+                        .clip(CircleShape)
+                        .background(SurfaceColor.copy(0.5f))
+
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(text = organization.name, fontSize = 14.sp)
@@ -288,12 +384,13 @@ fun OrganizationOwned(
 
 @Composable
 fun OrganizationJoined(
+    avatarList: List<Int>,
     organizationsMemberOf: List<Organization>,
     isOrganizationJoined: Boolean,
     onJoined: () -> Unit,
     onOrganizationJoinedClicked: (Organization) -> Unit,
 ) {
-    LazyColumn {
+    LazyColumn(modifier = Modifier.fillMaxWidth()) {
         item {
             Column(
                 modifier = Modifier
@@ -319,10 +416,14 @@ fun OrganizationJoined(
                     .padding(start = 0.dp)
                     .clickable { onOrganizationJoinedClicked(organizations) }) {
 
-                Icon(
-                    painter = painterResource(R.drawable.ic_add),
+                Image(
+                    painter = painterResource(avatarList[organizations.avatarIndex]),
                     contentDescription = null,
-                    modifier = Modifier.size(25.dp)
+                    modifier = Modifier
+                        .size(25.dp)
+                        .clip(CircleShape)
+                        .background(SurfaceColor.copy(0.5f))
+
                 )
                 Text(text = organizations.name, fontSize = 14.sp)
             }
@@ -332,128 +433,3 @@ fun OrganizationJoined(
 }
 
 
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun BottomSheet(
-    onCreateClick: () -> Unit,
-    onJoinClick: () -> Unit,
-    showSheet: Boolean,
-    onDismissRequest: () -> Unit,
-) {
-    val sheetState = rememberModalBottomSheetState(
-        skipPartiallyExpanded = true
-    )
-
-    val scope = rememberCoroutineScope()
-
-
-    if (showSheet) {
-        ModalBottomSheet(
-            onDismissRequest = {
-                scope.launch {
-                    sheetState.hide()
-                    onDismissRequest()
-                }
-            },
-            sheetState = sheetState,
-            containerColor = Color.White,
-            shape = RectangleShape,
-            dragHandle = {},
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text("Add organization", fontSize = 18.sp)
-                    IconButton(
-                        onClick = {
-                            scope.launch {
-                                sheetState.hide()
-                                onDismissRequest()
-                            }
-                        },
-                        modifier = Modifier.size(30.dp),
-                        colors = IconButtonDefaults.iconButtonColors(
-                            containerColor = SurfaceColor.copy(
-                                0.3f
-                            )
-                        ),
-                    ) {
-                        Icon(imageVector = Icons.Default.Close, contentDescription = null)
-                    }
-                }
-                Spacer(modifier = Modifier.padding(vertical = 16.dp))
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable { onCreateClick() },
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    IconButton(
-                        onClick = {},
-                        colors = IconButtonDefaults.iconButtonColors(
-                            containerColor = SurfaceColor.copy(
-                                0.3f
-                            )
-                        ),
-                    ) {
-                        Icon(
-                            painter = painterResource(R.drawable.ic_plus),
-                            contentDescription = null,
-                            modifier = Modifier.size(30.dp)
-                        )
-                    }
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("Create new organization", fontSize = 18.sp)
-                }
-                Spacer(modifier = Modifier.height(16.dp))
-                HorizontalDivider(modifier = Modifier.padding(start = 55.dp))
-                Spacer(modifier = Modifier.height(32.dp))
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(Color.White)
-                        .clickable {
-                            onJoinClick()
-                        },
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    IconButton(
-                        onClick = {},
-                        colors = IconButtonDefaults.iconButtonColors(
-                            containerColor = SurfaceColor.copy(
-                                0.3f
-                            )
-                        )
-                    ) {
-                        Icon(
-                            painter = painterResource(R.drawable.ic_left_arrow),
-                            contentDescription = null
-                        )
-                    }
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("Join existing organization", fontSize = 18.sp)
-                }
-                Spacer(modifier = Modifier.height(16.dp))
-                HorizontalDivider(modifier = Modifier.padding(start = 55.dp))
-                Spacer(modifier = Modifier.height(32.dp))
-
-                TextButton(onClick = {
-                    scope.launch {
-                        sheetState.hide()
-                        onDismissRequest()
-                    }
-                }) {
-                    Text(text = "Cancel", color = PrimaryColor)
-                }
-            }
-        }
-    }
-}

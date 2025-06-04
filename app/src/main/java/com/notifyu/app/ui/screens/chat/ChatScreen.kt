@@ -1,11 +1,15 @@
-package com.notifyu.app.ui.screens.events
+package com.notifyu.app.ui.screens.chat
 
+import android.util.Log
+import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -15,21 +19,18 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Send
-import androidx.compose.material3.Button
-import androidx.compose.material3.DividerDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.IconButtonDefaults
-import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Tab
@@ -38,7 +39,7 @@ import androidx.compose.material3.TabRowDefaults
 import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TextFieldDefaults
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -46,26 +47,26 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.RectangleShape
-import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
-import com.notifyu.app.ui.screens.events.components.CustomBasicTextField
+import com.notifyu.app.ui.screens.chat.components.CustomBasicTextField
 import com.notifyu.app.ui.theme.PrimaryColor
 import com.notifyu.app.R
 import com.notifyu.app.data.model.Message
 import com.notifyu.app.data.model.Organization
+import com.notifyu.app.navigation.navgraph.main.MainScreenRoutes
+import com.notifyu.app.ui.theme.SurfaceColor
 import com.notifyu.app.viewmodel.MainViewModel
-import java.security.acl.Owner
+import kotlinx.coroutines.launch
 
 @Composable
 fun EventChatScreen(navController: NavController, mainViewModel: MainViewModel) {
+    val context = LocalContext.current
     var selectedTabIndex by remember { mutableStateOf(0) }
     val tabTitles = listOf("Messages", "People", "Setting")
 
@@ -86,9 +87,59 @@ fun EventChatScreen(navController: NavController, mainViewModel: MainViewModel) 
 
     val messages by mainViewModel.onOrgMessages.collectAsState()
 
+    val orgEmails = remember { mutableStateListOf<String>() }
+    val orgFcmTokens = remember { mutableStateListOf<String>() }
+    val orgUids = remember { mutableStateListOf<String>() }
+
+
     LaunchedEffect(messages.size) {
         mainViewModel.fetchMessagesForOrganization(organizationId)
     }
+
+    LaunchedEffect(selectedOrganization?.members) {
+
+        val memberIds = selectedOrganization?.members ?: emptyList()
+        mainViewModel.fetchUsersByIds(memberIds) { fetchedUsers ->
+            Log.d("EventChatScreen", "Fetched Users: ${fetchedUsers.map { it.uid }}")
+            orgEmails.clear()
+            orgFcmTokens.clear()
+            orgUids.clear()
+
+            fetchedUsers.forEach { user ->
+                orgEmails.add(user.email)
+                orgFcmTokens.add(user.fcmToken)
+                orgUids.add(user.uid)
+            }
+
+            val currentUid = currentUser?.uid
+            if (currentUid != null && !isOwner && currentUid !in orgUids) {
+                Log.d("EventChatScreen", "You have been removed from the organization")
+                //Toast.makeText(context, "You have been removed from the organization", Toast.LENGTH_SHORT).show()
+                navController.navigate(MainScreenRoutes.HomeScreen.route) {
+                    popUpTo(0) // Optional: clears backstack
+                }
+            }
+        }
+    }
+
+    val avatarList = listOf(
+        R.drawable.avatar_index_0,
+        R.drawable.avatar_index_1,
+        R.drawable.avatar_index_2,
+        R.drawable.avatar_index_3,
+        R.drawable.avatar_index_4,
+        R.drawable.avatar_index_5,
+        R.drawable.avatar_index_6,
+        R.drawable.avatar_index_7,
+        R.drawable.avatar_index_8,
+        R.drawable.avatar_index_9,
+    )
+
+    val avatarIndex = selectedOrganization?.avatarIndex ?: 0
+    val avatarRes = avatarList.getOrElse(avatarIndex) { avatarList[0] }
+
+
+
 
     Column {
         TabRow(
@@ -122,13 +173,25 @@ fun EventChatScreen(navController: NavController, mainViewModel: MainViewModel) 
         when (selectedTabIndex) {
             0 -> EventMessagesTab(
                 isOwner = isOwner,
-                organization = selectedOrganization,
+                organizationName = selectedOrganization?.name ?: "null",
                 messages = messages,
+                orgFcmTokens = orgFcmTokens,
                 mainViewModel = mainViewModel
             )
 
-            1 -> EventPeopleTab(organization = selectedOrganization)
-            2 -> EventSettingsTab(organization = selectedOrganization, currentUser = currentUser?.email.toString())
+            1 -> EventPeopleTab(
+                membersEmail = orgEmails,
+                membersUid = orgUids,
+                mainViewModel = mainViewModel
+            )
+
+            2 -> EventSettingsTab(
+                organization = selectedOrganization,
+                currentUser = currentUser?.email.toString(),
+                organizationAvatar = avatarRes,
+                mainViewModel = mainViewModel,
+                avatarList = avatarList
+            )
         }
     }
 }
@@ -136,13 +199,14 @@ fun EventChatScreen(navController: NavController, mainViewModel: MainViewModel) 
 @Composable
 fun EventMessagesTab(
     isOwner: Boolean,
-    organization: Organization?,
+    organizationName: String,
     messages: List<Message>,
+    orgFcmTokens: List<String>,
     mainViewModel: MainViewModel,
 ) {
     val textFieldValue = remember { mutableStateOf("") }
     val listState = rememberLazyListState()
-
+    val context = LocalContext.current
     // Extract messages from the organization (defaults to empty list if null)
 
     // Scroll to last message when message list changes
@@ -165,10 +229,14 @@ fun EventMessagesTab(
                 .weight(1f),
             state = listState
         ) {
+            item {
+                Spacer(modifier = Modifier.height(16.dp))
+            }
             items(messages.size) { index ->
                 val msg = messages[index]
+
                 MessageBubble(
-                    organizationName = organization?.name ?: "",
+                    organizationName = organizationName,
                     message = msg.content
                 )
 
@@ -188,17 +256,26 @@ fun EventMessagesTab(
                 Box(
                     modifier = Modifier
                         .size(40.dp)
-                        .background(PrimaryColor, shape = CircleShape)
+                        .clip(CircleShape)
+                        .background(PrimaryColor)
                         .clickable {
                             val text = textFieldValue.value.trim()
                             if (text.isNotEmpty()) {
+                                textFieldValue.value = ""
+                                val tempValue = textFieldValue.value
                                 mainViewModel.addMessage(
                                     content = text,
                                     senderId = mainViewModel.auth.currentUser!!.uid
-                                ) { isSu, _ ->
-                                    if (isSu) {
-                                        textFieldValue.value = ""
-                                        // Trigger reload organization from Firestore if needed
+                                ) { isSuccess, message ->
+                                    if (isSuccess) {
+                                        mainViewModel.sendFcmPushNotification(
+                                            context = context,
+                                            targetTokens = orgFcmTokens,
+                                            title = organizationName,
+                                            body = tempValue
+                                        )
+                                    } else {
+                                        Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
                                     }
                                 }
                             }
@@ -208,7 +285,7 @@ fun EventMessagesTab(
                     Icon(
                         imageVector = Icons.Default.Send,
                         contentDescription = null,
-                        tint = Color.White
+                        tint = Color.White,
                     )
                 }
             } else {
@@ -225,43 +302,83 @@ fun EventMessagesTab(
 }
 
 @Composable
-fun EventPeopleTab(organization: Organization?) {
-    organization?.let {
-        LazyColumn {
-            items(it.members.size) { index ->
-                val memberId = it.members[index] // <- member UID here
-                Row(
+fun EventPeopleTab(
+    membersEmail: List<String>,
+    membersUid: List<String>,
+    mainViewModel: MainViewModel,
+) {
+    val context = LocalContext.current
+
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(bottom = 16.dp)
+    ) {
+        items(membersEmail.size) { index ->
+            val email = membersEmail[index]
+            val uid = membersUid[index]
+
+            Row(
+                modifier = Modifier
+                    .padding(start = 16.dp, top = 8.dp, bottom = 8.dp)
+                    .fillMaxWidth()
+                    .background(Color.White),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .background(Color.White)
-                        .padding(vertical = 8.dp, horizontal = 16.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                        .size(35.dp)
+                        .background(SurfaceColor.copy(0.5f), shape = CircleShape),
+                    contentAlignment = Alignment.Center
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .size(35.dp)
-                            .background(color = Color.Green, shape = CircleShape)
+                    Text(
+                        text = email.firstOrNull()?.toString() ?: "",
+                        color = Color.Black
                     )
-                    Spacer(modifier = Modifier.padding(horizontal = 8.dp))
-                    Column {
-                        Text(text = memberId, fontSize = 16.sp) // <- show member UID
-                        Text(text = "Announcement", fontSize = 14.sp, color = Color.Gray)
+                }
+
+                Spacer(modifier = Modifier.width(8.dp))
+                Column {
+                    Text(text = email, fontSize = 16.sp)
+                    Text(text = "Member", fontSize = 14.sp, color = Color.Gray)
+                }
+                Spacer(modifier = Modifier.weight(1f))
+
+                IconButton(onClick = {
+                    mainViewModel.removeMemberFromOrganization(uid) { success, message ->
+                        Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
                     }
-                    Spacer(modifier = Modifier.weight(1f))
-                    Text(text = "Set", fontSize = 14.sp)
+                }) {
+                    Icon(
+                        imageVector = Icons.Default.Delete,
+                        contentDescription = "Remove",
+                        modifier = Modifier.size(18.dp)
+                    )
                 }
             }
+
+            HorizontalDivider(
+                modifier = Modifier.padding(horizontal = 16.dp),
+                color = SurfaceColor.copy(0.2f)
+            )
         }
     }
 }
 
 
 @Composable
-fun EventSettingsTab(organization: Organization?, currentUser: String) {
+fun EventSettingsTab(
+    organization: Organization?,
+    currentUser: String,
+    organizationAvatar: Int,
+    mainViewModel: MainViewModel,
+    avatarList: List<Int>,
+) {
     val orgName by remember { mutableStateOf(organization?.name ?: "") }
     val orgCode by remember { mutableStateOf(organization?.code ?: "") }
-
+    val showBottomSheet = remember { mutableStateOf(false) }
     val grayColor = Color.Gray
+    val context = LocalContext.current
 
     Column(
         modifier = Modifier
@@ -275,13 +392,15 @@ fun EventSettingsTab(organization: Organization?, currentUser: String) {
         ) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Image(
-                    painter = painterResource(R.drawable.ic_launcher_background),
+                    painter = painterResource(organizationAvatar),
                     contentDescription = null,
                     modifier = Modifier
                         .size(60.dp)
                         .clip(CircleShape)
+                        .background(SurfaceColor.copy(0.5f))
+
                 )
-                TextButton(onClick = { /* Handle edit icon click */ }) {
+                TextButton(onClick = { showBottomSheet.value = !showBottomSheet.value }) {
                     Text(text = "Edit Icon", color = PrimaryColor)
                 }
             }
@@ -343,8 +462,14 @@ fun EventSettingsTab(organization: Organization?, currentUser: String) {
             Box(
                 modifier = Modifier
                     .size(35.dp)
-                    .background(color = Color.Green, shape = CircleShape)
-            )
+                    .background(SurfaceColor.copy(0.5f), shape = CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = currentUser.firstOrNull()?.toString() ?: "",
+                    color = Color.Black
+                )
+            }
             Spacer(modifier = Modifier.width(12.dp))
             Column {
                 Text(text = currentUser, fontSize = 16.sp, fontWeight = FontWeight.Medium)
@@ -352,8 +477,23 @@ fun EventSettingsTab(organization: Organization?, currentUser: String) {
             }
         }
     }
-}
 
+    AvatarPickerBottomSheet(
+        showSheet = showBottomSheet.value,
+        onDismissRequest = { showBottomSheet.value = false },
+        avatarList = avatarList,
+        selectedAvatarIndex = organization?.avatarIndex ?: 0,
+        onAvatarSelected = { selectedIndex ->
+            mainViewModel.updateOrganizationAvatarIndex(
+                orgId = organization?.id ?: "",
+                newAvatarIndex = selectedIndex,
+                onResult = { success, message ->
+                    Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+                }
+            )
+        }
+    )
+}
 
 
 @Composable
@@ -365,7 +505,6 @@ fun MessageBubble(organizationName: String, message: String) {
                 Color.Gray.copy(alpha = 0.15f),
                 shape = RoundedCornerShape(8.dp)
             )
-            .padding(bottom = 0.dp)
     ) {
         Text(
             text = message,
@@ -396,6 +535,86 @@ fun MessageBubble(organizationName: String, message: String) {
                 color = Color.White,
                 fontWeight = FontWeight.Medium
             )
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun AvatarPickerBottomSheet(
+    showSheet: Boolean,
+    onDismissRequest: () -> Unit,
+    avatarList: List<Int>,
+    selectedAvatarIndex: Int?, // <- new parameter to indicate selected avatar
+    onAvatarSelected: (Int) -> Unit,
+) {
+    val sheetState = rememberModalBottomSheetState(
+        skipPartiallyExpanded = true
+    )
+    val scope = rememberCoroutineScope()
+
+    if (showSheet) {
+        ModalBottomSheet(
+            onDismissRequest = {
+                scope.launch {
+                    sheetState.hide()
+                    onDismissRequest()
+                }
+            },
+            sheetState = sheetState,
+            containerColor = Color.White,
+            shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp),
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp)
+            ) {
+                Text(
+                    text = "Select Avatar",
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(bottom = 16.dp)
+                )
+
+                FlowRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                    maxItemsInEachRow = 3
+                ) {
+                    avatarList.forEachIndexed { index, avatarRes ->
+                        val isSelected = selectedAvatarIndex == index
+                        Box(
+                            modifier = Modifier
+                                .size(80.dp)
+                                .clip(CircleShape)
+                                .background(SurfaceColor.copy(0.5f))
+                                .border(
+                                    width = if (isSelected) 2.dp else 0.dp,
+                                    color = if (isSelected) PrimaryColor else Color.Transparent,
+                                    shape = CircleShape
+                                )
+                                .clickable {
+                                    scope.launch {
+                                        sheetState.hide()
+                                        onAvatarSelected(index)
+                                        onDismissRequest()
+                                    }
+                                },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Image(
+                                painter = painterResource(id = avatarRes),
+                                contentDescription = "Avatar $index",
+                                modifier = Modifier
+                                    .size(70.dp)
+                                    .clip(CircleShape)
+                            )
+                        }
+                    }
+                }
+            }
         }
     }
 }
