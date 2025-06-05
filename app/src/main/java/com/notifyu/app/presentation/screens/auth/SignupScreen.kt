@@ -275,16 +275,28 @@ fun SignupScreen(navController: NavController, mainViewModel: MainViewModel) {
                 onClick = {
                     if (isEmailValid && isPasswordValid && isConfirmPasswordValid) {
                         isCreatingAccount = true
-                        mainViewModel.signUp(
+//                        mainViewModel.signUp(
+//                            email = email.value,
+//                            password = password.value,
+//                            onResult = { isSuccess, message ->
+//                                if (isSuccess) {
+//                                    isCreatingAccount = false
+//                                    navController.navigate(AuthScreenRoutes.VerifyEmailScreen.route)
+//                                } else {
+//                                    isCreatingAccount = false
+//                                    Toast.makeText(context, "Error", Toast.LENGTH_SHORT).show()
+//                                }
+//                            })
+                        mainViewModel.authSignup(
                             email = email.value,
-                            password = password.value,
+                            code = password.value,
                             onResult = { isSuccess, message ->
                                 if (isSuccess) {
                                     isCreatingAccount = false
                                     navController.navigate(AuthScreenRoutes.VerifyEmailScreen.route)
                                 } else {
                                     isCreatingAccount = false
-                                    Toast.makeText(context, "Error", Toast.LENGTH_SHORT).show()
+                                    Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
                                 }
                             })
                     } else {
@@ -317,10 +329,7 @@ fun SignupScreen(navController: NavController, mainViewModel: MainViewModel) {
 
             if (isCreatingAccount) {
                 AsyncProgressDialog(
-                    trigger = isCreatingAccount,
-                    delaySec = 5000,
-                    navController = navController,
-                    navigateTo = AuthScreenRoutes.VerifyEmailScreen.route,
+                    showDialog = isCreatingAccount,
                     "Account creating"
                 )
             }

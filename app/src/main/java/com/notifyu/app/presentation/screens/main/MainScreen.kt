@@ -98,7 +98,25 @@ fun MainScreen(navController: NavHostController, mainViewModel: MainViewModel) {
         com.notifyu.app.R.drawable.avatar_index_9,
     )
     LaunchedEffect(Unit) {
-        mainViewModel.fetchSelectedScreenForCurrentUser { selectedScreen ->
+//        mainViewModel.fetchSelectedScreenForCurrentUser { selectedScreen ->
+//            when (selectedScreen) {
+//                "owned" -> {
+//                    isOrganizationOwned.value = true
+//                    isOrganizationJoined.value = false
+//                }
+//
+//                "joined" -> {
+//                    isOrganizationJoined.value = true
+//                    isOrganizationOwned.value = false
+//                }
+//
+//                "none" -> {
+//
+//                }
+//            }
+//        }
+
+        mainViewModel.authFetchSelectedScreenForCurrentUser { selectedScreen ->
             when (selectedScreen) {
                 "owned" -> {
                     isOrganizationOwned.value = true
@@ -184,7 +202,10 @@ fun MainScreen(navController: NavHostController, mainViewModel: MainViewModel) {
                     onOwnedClick = {
                         scope.launch {
                             drawerState.close()
-                            mainViewModel.updateSelectedScreen(
+//                            mainViewModel.updateSelectedScreen(
+//                                mainViewModel.auth.currentUser?.uid ?: "", SelectedScreen.Owned
+//                            )
+                            mainViewModel.authUpdateSelectedScreen(
                                 mainViewModel.auth.currentUser?.uid ?: "", SelectedScreen.Owned
                             )
                             navController.navigate(MainScreenRoutes.OrganizationOwnedScreen.route)
@@ -207,7 +228,10 @@ fun MainScreen(navController: NavHostController, mainViewModel: MainViewModel) {
                     onJoined = {
                         scope.launch {
                             drawerState.close()
-                            mainViewModel.updateSelectedScreen(
+//                            mainViewModel.updateSelectedScreen(
+//                                mainViewModel.auth.currentUser?.uid ?: "", SelectedScreen.Joined
+//                            )
+                            mainViewModel.authUpdateSelectedScreen(
                                 mainViewModel.auth.currentUser?.uid ?: "", SelectedScreen.Joined
                             )
                             navController.navigate(MainScreenRoutes.OrganizationJoinedScreen.route)
@@ -266,7 +290,15 @@ fun MainScreen(navController: NavHostController, mainViewModel: MainViewModel) {
                             onLeaveClick = {
                                 isMenuExpanded = false
                                 if (!isOwner) {
-                                    mainViewModel.removeMemberFromOrganization(
+//                                    mainViewModel.removeMemberFromOrganization(
+//                                        mainViewModel.auth.currentUser?.uid ?: ""
+//                                    ) { success, message ->
+//                                        Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+//                                        if (success) {
+//                                            navController.popBackStack()
+//                                        }
+//                                    }
+                                    mainViewModel.authRemoveMemberFromOrganization(
                                         mainViewModel.auth.currentUser?.uid ?: ""
                                     ) { success, message ->
                                         Toast.makeText(context, message, Toast.LENGTH_SHORT).show()

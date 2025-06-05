@@ -43,7 +43,16 @@ fun CreateJoinOrgScreen(navController: NavController, mainViewModel: MainViewMod
                 organizationName = organizationName,
                 organizationCode = organizationCode,
                 onResult = {
-                    mainViewModel.addOrganization(
+//                    mainViewModel.addOrganization(
+//                        name = organizationName.value,
+//                        code = organizationCode.value,
+//                        onResult = { isSuccess, message ->
+//                            Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+//                            if (isSuccess){
+//                                navController.navigate(MainScreenRoutes.HomeScreen.route)
+//                            }
+//                        })
+                    mainViewModel.authAddOrganization(
                         name = organizationName.value,
                         code = organizationCode.value,
                         onResult = { isSuccess, message ->
@@ -58,7 +67,16 @@ fun CreateJoinOrgScreen(navController: NavController, mainViewModel: MainViewMod
                 organizationName = organizationName,
                 organizationCode = organizationCode,
                 onClick = {
-                    mainViewModel.joinOrganizationByNameAndCode(
+//                    mainViewModel.joinOrganizationByNameAndCode(
+//                        name = organizationName.value,
+//                        code = organizationCode.value,
+//                        onResult = { isSuccess, message ->
+//                            Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+//                            if (isSuccess) {
+//                                navController.navigate(MainScreenRoutes.HomeScreen.route)
+//                            }
+//                        })
+                    mainViewModel.authJoinOrganizationByNameAndCode(
                         name = organizationName.value,
                         code = organizationCode.value,
                         onResult = { isSuccess, message ->

@@ -107,138 +107,33 @@ fun ResetPasswordScreen(navController: NavController, mainViewModel: MainViewMod
                     )
             )
 
-            OutlinedTextField(
-                value = password.value,
-                onValueChange = {
-                    password.value = it
-                },
-                label = { Text("Password") },
-                textStyle = TextStyle(color = Color.Black),
-                modifier = Modifier.fillMaxWidth(),
-                visualTransformation = if (passwordVisible.value) VisualTransformation.None else PasswordVisualTransformation(),
-                trailingIcon = {
-                    val image = if (passwordVisible.value)
-                        painterResource(R.drawable.ic_visibility)
-                    else painterResource(R.drawable.ic_visibility_off)
-                    IconButton(onClick = { passwordVisible.value = !passwordVisible.value }) {
-                        Icon(
-                            painter = image,
-                            contentDescription = if (passwordVisible.value) "Hide password" else "Show password",
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
-                },
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedTextColor = Color.Black,
-                    unfocusedTextColor = Color.Black,
-                    errorTextColor = Color.Red,  // Set error text color to red
-
-                    cursorColor = Color.Black,
-                    errorCursorColor = Color.Red,
-
-                    focusedBorderColor = Color.Black,
-                    unfocusedBorderColor = Color.Gray,
-                    errorBorderColor = Color.Red,
-
-                    focusedLeadingIconColor = Color.Black,
-                    unfocusedLeadingIconColor = Color.Gray,
-                    errorLeadingIconColor = Color.Red,
-
-                    focusedTrailingIconColor = Color.Black,
-                    unfocusedTrailingIconColor = Color.Gray,
-                    disabledTrailingIconColor = Color.Gray,
-                    errorTrailingIconColor = Color.Red,
-
-                    focusedLabelColor = Color.Black,
-                    unfocusedLabelColor = Color.Gray,
-                    disabledLabelColor = Color.Gray,
-                    errorLabelColor = Color.Red,
-
-                    )
-            )
-
-            OutlinedTextField(
-                value = confirmPassword.value,
-                onValueChange = {
-                    confirmPassword.value = it
-                },
-                label = { Text("Confirm Password") },
-                textStyle = TextStyle(color = Color.Black),
-                modifier = Modifier.fillMaxWidth(),
-                visualTransformation = if (confirmPasswordVisible.value) VisualTransformation.None else PasswordVisualTransformation(),
-                trailingIcon = {
-                    val image = if (confirmPasswordVisible.value)
-                        painterResource(R.drawable.ic_visibility)
-                    else painterResource(R.drawable.ic_visibility_off)
-                    IconButton(onClick = {
-                        confirmPasswordVisible.value = !confirmPasswordVisible.value
-                    }) {
-                        Icon(
-                            painter = image,
-                            contentDescription = if (confirmPasswordVisible.value) "Hide password" else "Show password",
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
-                },
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedTextColor = Color.Black,
-                    unfocusedTextColor = Color.Black,
-                    errorTextColor = Color.Red,  // Set error text color to red
-
-                    cursorColor = Color.Black,
-                    errorCursorColor = Color.Red,
-
-                    focusedBorderColor = Color.Black,
-                    unfocusedBorderColor = Color.Gray,
-                    errorBorderColor = Color.Red,
-
-                    focusedLeadingIconColor = Color.Black,
-                    unfocusedLeadingIconColor = Color.Gray,
-                    errorLeadingIconColor = Color.Red,
-
-                    focusedTrailingIconColor = Color.Black,
-                    unfocusedTrailingIconColor = Color.Gray,
-                    disabledTrailingIconColor = Color.Gray,
-                    errorTrailingIconColor = Color.Red,
-
-                    focusedLabelColor = Color.Black,
-                    unfocusedLabelColor = Color.Gray,
-                    disabledLabelColor = Color.Gray,
-                    errorLabelColor = Color.Red,
-
-                    )
-            )
-
             Button(
                 onClick = {
-
-                    if (currentUser == null) {
-                        Toast.makeText(context, "No user is signed in", Toast.LENGTH_SHORT).show()
-                        return@Button
-                    }
-                    if (email.value.isEmpty() || password.value.isEmpty() || confirmPassword.value.isEmpty()) {
+                    if (email.value.isEmpty()) {
                         Toast.makeText(context, "Please fill all fields", Toast.LENGTH_SHORT).show()
                         return@Button
                     }
-                    if (email.value != currentUser!!.email) {
-                        Toast.makeText(
-                            context,
-                            "Email does not match the signed-in user",
-                            Toast.LENGTH_SHORT
-                        ).show()
-                        return@Button
-                    }
-                    if (password.value != confirmPassword.value) {
-                        Toast.makeText(context, "Passwords do not match", Toast.LENGTH_SHORT).show()
-                        return@Button
-                    }
-                    mainViewModel.updatePassword(password.value) { success, message ->
+
+//                    mainViewModel.updatePassword(password.value) { success, message ->
+//                        Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+//                        if (success) {
+//                            Toast.makeText(context, "Passwords updated", Toast.LENGTH_SHORT).show()
+//                            navController.navigate(AuthScreenRoutes.LoginScreen.route)
+//                        }
+//                    }
+                    //  THIS WHEN NEED WHEN YOU ARE LOGIN
+//                    mainViewModel.authUpdatePassword(password.value) { success, message ->
+//                        Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+//                        if (success) {
+//                            navController.navigate(AuthScreenRoutes.LoginScreen.route)
+//                        }
+//                    }
+                    mainViewModel.authSendPasswordResetEmail(email = email.value, onResult = { success,message ->
                         Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
-                        if (success) {
-                            Toast.makeText(context, "Passwords updated", Toast.LENGTH_SHORT).show()
+                        if (success){
                             navController.navigate(AuthScreenRoutes.LoginScreen.route)
                         }
-                    }
+                    })
                 },
                 shape = RoundedCornerShape(4.dp),
                 modifier = Modifier.fillMaxWidth()

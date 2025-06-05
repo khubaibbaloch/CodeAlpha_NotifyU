@@ -23,23 +23,9 @@ import kotlinx.coroutines.delay
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AsyncProgressDialog(
-    trigger: Boolean,
-    delaySec: Long,
-    navController: NavController,
-    navigateTo: String,
+    showDialog: Boolean,
     message: String = "Processing...",
 ) {
-    var showDialog by remember { mutableStateOf(false) }
-
-    LaunchedEffect(trigger) {
-        if (trigger) {
-            showDialog = true
-            delay(delaySec) // Simulate processing
-            showDialog = false
-            navController.navigate(navigateTo)
-        }
-    }
-
     if (showDialog) {
         BasicAlertDialog(onDismissRequest = {}) {
             Surface(

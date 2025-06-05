@@ -43,6 +43,8 @@ import com.notifyu.app.presentation.navigation.navgraph.auth.AuthScreenRoutes
 import com.notifyu.app.presentation.navigation.navgraph.main.MainScreenRoutes
 import com.notifyu.app.presentation.viewmodel.MainViewModel
 import androidx.compose.runtime.*
+import com.google.firebase.Firebase
+import com.google.firebase.auth.auth
 import com.notifyu.app.presentation.screens.auth.components.AsyncProgressDialog
 
 @Composable
@@ -171,16 +173,7 @@ fun LoginScreen(navController: NavController, mainViewModel: MainViewModel) {
                     color = PrimaryColor,
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.clickable {
-                        val currentUser = mainViewModel.auth.currentUser
-                        currentUser?.let { user ->
-                            if (user.isEmailVerified) {
-                                navController.navigate(AuthScreenRoutes.ResetPasswordScreen.route)
-                            }else {
-                                navController.navigate(AuthScreenRoutes.VerifyEmailScreen.route)
-                            }
-                        } ?: run {
-                            Toast.makeText(context, "No user Found", Toast.LENGTH_SHORT).show()
-                        }
+                        navController.navigate(AuthScreenRoutes.ResetPasswordScreen.route)
                     }
                 )
             }
@@ -190,7 +183,25 @@ fun LoginScreen(navController: NavController, mainViewModel: MainViewModel) {
                 onClick = {
                     if (email.value.isNotEmpty() && password.value.isNotEmpty()) {
                         isLoginAccount = true
-                        mainViewModel.loginWithEmail(
+//                        mainViewModel.loginWithEmail(
+//                            email = email.value,
+//                            password = password.value,
+//                            onResult = { isSuccess ->
+//                                isLoginAccount = false
+//                                val user = mainViewModel.auth.currentUser
+//                                if (isSuccess && user != null) {
+//                                    if (user.isEmailVerified) {
+//                                        navController.navigate(MainScreenRoutes.HomeScreen.route)
+//                                    } else {
+//                                        navController.navigate(AuthScreenRoutes.VerifyEmailScreen.route)
+//                                    }
+//                                } else {
+//                                    Toast.makeText(context, "Check email or Password", Toast.LENGTH_SHORT).show()
+//                                }
+//                            }
+//                        )
+
+                        mainViewModel.authLoginWithEmail(
                             email = email.value,
                             password = password.value,
                             onResult = { isSuccess ->
@@ -232,11 +243,8 @@ fun LoginScreen(navController: NavController, mainViewModel: MainViewModel) {
 
             if (isLoginAccount) {
                 AsyncProgressDialog(
-                    trigger = isLoginAccount,
-                    delaySec = 5000,
-                    navController = navController,
-                    navigateTo = "",
-                    "Authenticating account..."
+                    showDialog = isLoginAccount,
+                    message = "Authenticating account..."
                 )
             }
 

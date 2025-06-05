@@ -84,7 +84,7 @@ fun VerifyEmailScreen(navController: NavController, mainViewModel: MainViewModel
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
-                mainViewModel.checkEmailVerification { isSuccess ->
+                mainViewModel.authCheckEmailVerification { isSuccess ->
                     if (isSuccess) {
                         isVerifyingEmail = false
                         navController.navigate(MainScreenRoutes.HomeScreen.route)
@@ -161,7 +161,14 @@ fun VerifyEmailScreen(navController: NavController, mainViewModel: MainViewModel
                 onClick = {
                     isVerifyingEmail = true
                     currentUser?.let {
-                        mainViewModel.sendEmailVerification { isSuccess, message ->
+//                        mainViewModel.sendEmailVerification { isSuccess, message ->
+//                            email.value = ""
+//                            Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+//                            if (!isSuccess) {
+//                                isVerifyingEmail = false
+//                            }
+//                        }
+                        mainViewModel.authSendEmailVerification { isSuccess, message ->
                             email.value = ""
                             Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
                             if (!isSuccess) {
@@ -198,10 +205,7 @@ fun VerifyEmailScreen(navController: NavController, mainViewModel: MainViewModel
 
             if (isVerifyingEmail) {
                 AsyncProgressDialog(
-                    trigger = isVerifyingEmail,
-                    delaySec = 60000,
-                    navController = navController,
-                    navigateTo = "",
+                    showDialog = isVerifyingEmail,
                     message = "Waiting for email verification..."
                 )
             }

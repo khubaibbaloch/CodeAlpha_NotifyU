@@ -27,7 +27,10 @@ fun HomeScreen(navController: NavController, mainViewModel: MainViewModel) {
     val context = LocalContext.current
 
     LaunchedEffect(Unit) {
-        mainViewModel.fetchSelectedScreenForCurrentUser { selectedScreen ->
+//        mainViewModel.fetchSelectedScreenForCurrentUser { selectedScreen ->
+//            selectedScreenState.value = selectedScreen ?: SelectedScreen.None.value
+//        }
+        mainViewModel.authFetchSelectedScreenForCurrentUser { selectedScreen ->
             selectedScreenState.value = selectedScreen ?: SelectedScreen.None.value
         }
     }

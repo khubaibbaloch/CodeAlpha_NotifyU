@@ -32,7 +32,8 @@ import com.notifyu.app.presentation.theme.SurfaceColor
 fun OrganizationOwnedScreen(navController: NavController, mainViewModel: MainViewModel) {
     val organizationOwned by mainViewModel.organizationsOwned.collectAsState()
     LaunchedEffect(Unit) {
-        mainViewModel.fetchOwnedOrganizations()
+        mainViewModel.authFetchOwnedOrganizations()
+//        mainViewModel.fetchOwnedOrganizations()
     }
     val avatarList = listOf(
         com.notifyu.app.R.drawable.avatar_index_0,

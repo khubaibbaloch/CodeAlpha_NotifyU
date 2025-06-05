@@ -50,7 +50,8 @@ fun OrganizationJoinedScreen(navController: NavController,mainViewModel: MainVie
 
 
     LaunchedEffect(Unit) {
-        mainViewModel.fetchMemberOrganizations()
+        //mainViewModel.fetchMemberOrganizations()
+        mainViewModel.authFetchMemberOrganizations()
     }
 
     Column(modifier = Modifier.fillMaxSize()) {
