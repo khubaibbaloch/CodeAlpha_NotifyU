@@ -5,6 +5,37 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.messaging.FirebaseMessaging
 import com.notifyu.app.data.repository.AuthRepositoryImpl
+import com.notifyu.app.data.repository.NotificationRepositoryImpl
+import com.notifyu.app.data.repository.OrganizationRepositoryImpl
+import com.notifyu.app.data.repository.UserRepositoryImpl
+import com.notifyu.app.domain.repository.AuthRepository
+import com.notifyu.app.domain.repository.NotificationRepository
+import com.notifyu.app.domain.repository.OrganizationRepository
+import com.notifyu.app.domain.repository.UserRepository
+import com.notifyu.app.domain.usecase.auth.AuthUseCases
+import com.notifyu.app.domain.usecase.auth.CheckEmailVerificationUseCase
+import com.notifyu.app.domain.usecase.auth.LoginWithEmailUserCase
+import com.notifyu.app.domain.usecase.auth.SendEmailVerificationUseCase
+import com.notifyu.app.domain.usecase.auth.SendPasswordResetEmailUseCase
+import com.notifyu.app.domain.usecase.auth.SignUpUseCase
+import com.notifyu.app.domain.usecase.auth.UpdatePasswordUseCase
+import com.notifyu.app.domain.usecase.notification.NotificationUseCase
+import com.notifyu.app.domain.usecase.organization.AddMessageUseCase
+import com.notifyu.app.domain.usecase.organization.AddOrganizationUseCase
+import com.notifyu.app.domain.usecase.organization.FetchMemberOrganizationsUseCase
+import com.notifyu.app.domain.usecase.organization.FetchMessagesForOrganizationUseCase
+import com.notifyu.app.domain.usecase.organization.FetchOwnedOrganizationsUseCase
+import com.notifyu.app.domain.usecase.user.FetchSelectedScreenForCurrentUserUseCase
+import com.notifyu.app.domain.usecase.organization.FetchUsersByIdsUseCase
+import com.notifyu.app.domain.usecase.organization.JoinOrganizationByNameAndCodeUseCase
+import com.notifyu.app.domain.usecase.organization.OrganizationUseCase
+import com.notifyu.app.domain.usecase.organization.RemoveMemberFromOrganizationUseCase
+import com.notifyu.app.domain.usecase.notification.SendFcmPushNotificationUseCase
+import com.notifyu.app.domain.usecase.notification.SyncFcmTokenIfChangedUseCase
+import com.notifyu.app.domain.usecase.organization.UpdateOrganizationAvatarIndexUseCase
+import com.notifyu.app.domain.usecase.user.CreateUserUseCase
+import com.notifyu.app.domain.usecase.user.UpdateSelectedScreenUseCase
+import com.notifyu.app.domain.usecase.user.UserUseCase
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -29,11 +60,81 @@ object AppModule {
 
     @Provides
     @Singleton
-    fun provideAuthRepositoryImpl(
+    fun provideAuthRepository(
+        firebaseAuth: FirebaseAuth
+    ): AuthRepository = AuthRepositoryImpl(firebaseAuth)
+
+    @Provides
+    @Singleton
+    fun provideAuthUseCases(repository: AuthRepository): AuthUseCases {
+        return AuthUseCases(
+            signUp = SignUpUseCase(repository),
+            login = LoginWithEmailUserCase(repository),
+            sendEmailVerification = SendEmailVerificationUseCase(repository),
+            checkEmailVerification = CheckEmailVerificationUseCase(repository),
+            sendPasswordReset = SendPasswordResetEmailUseCase(repository),
+            updatePassword = UpdatePasswordUseCase(repository)
+        )
+    }
+
+    @Provides
+    @Singleton
+    fun provideOrganizationRepository(
+        firebaseAuth: FirebaseAuth,
+        firestore: FirebaseFirestore,
+        firebaseMessaging: FirebaseMessaging,
+    ): OrganizationRepository =
+        OrganizationRepositoryImpl(firebaseAuth, firestore, firebaseMessaging)
+
+    @Provides
+    @Singleton
+    fun provideOrganizationUseCase(repository: OrganizationRepository): OrganizationUseCase {
+        return OrganizationUseCase(
+            addOrg = AddOrganizationUseCase(repository),
+            addMsg = AddMessageUseCase(repository),
+            getOwnedOrgs = FetchOwnedOrganizationsUseCase(repository),
+            getOrgMessages = FetchMessagesForOrganizationUseCase(repository),
+            joinOrg = JoinOrganizationByNameAndCodeUseCase(repository),
+            getMemberOrgs = FetchMemberOrganizationsUseCase(repository),
+            getUsersByIds = FetchUsersByIdsUseCase(repository),
+            removeMember = RemoveMemberFromOrganizationUseCase(repository),
+            updateAvatarIndex = UpdateOrganizationAvatarIndexUseCase(repository)
+        )
+    }
+
+    @Provides
+    @Singleton
+    fun provideUserRepository(
+        firebaseAuth: FirebaseAuth,
+        firestore: FirebaseFirestore,
+    ): UserRepository =
+        UserRepositoryImpl(firebaseAuth, firestore)
+
+    @Provides
+    @Singleton
+    fun provideUserUseCase(repository: UserRepository): UserUseCase {
+        return UserUseCase(
+            createUser = CreateUserUseCase(repository),
+            setSelectedScreen = UpdateSelectedScreenUseCase(repository),
+            getSelectedScreen = FetchSelectedScreenForCurrentUserUseCase(repository),
+        )
+    }
+
+    @Provides
+    @Singleton
+    fun provideNotificationRepository(
         firebaseAuth: FirebaseAuth,
         firestore: FirebaseFirestore,
         firebaseMessaging: FirebaseMessaging
-    ): AuthRepositoryImpl {
-        return AuthRepositoryImpl(firebaseAuth, firestore,firebaseMessaging)
+    ): NotificationRepository =
+        NotificationRepositoryImpl(firebaseAuth, firestore,firebaseMessaging)
+
+    @Provides
+    @Singleton
+    fun provideNotificationUseCase(repository: NotificationRepository): NotificationUseCase {
+        return NotificationUseCase(
+            syncFcmToken = SyncFcmTokenIfChangedUseCase(repository),
+            sendPushNotification = SendFcmPushNotificationUseCase(repository),
+        )
     }
 }

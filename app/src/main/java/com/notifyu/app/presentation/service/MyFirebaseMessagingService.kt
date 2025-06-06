@@ -1,8 +1,7 @@
-package com.notifyu.app.data.source.firebase
+package com.notifyu.app.presentation.service
 
 import android.app.NotificationChannel
 import android.app.NotificationManager
-import android.content.Context
 import android.os.Build
 import android.util.Log
 import androidx.core.app.NotificationCompat
@@ -49,7 +48,7 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
             .setContentText(body)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
 
-        val manager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        val manager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
                 "org_channel", "Org Notifications", NotificationManager.IMPORTANCE_HIGH

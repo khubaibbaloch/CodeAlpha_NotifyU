@@ -1,5 +1,6 @@
 package com.notifyu.app.presentation.screens.auth
 
+import android.util.Patterns
 import android.widget.Toast
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -41,50 +42,50 @@ import com.notifyu.app.R
 import com.notifyu.app.presentation.navigation.navgraph.auth.AuthScreenRoutes
 import com.notifyu.app.presentation.navigation.navgraph.main.MainScreenRoutes
 import com.notifyu.app.presentation.screens.auth.components.AsyncProgressDialog
+import com.notifyu.app.presentation.screens.auth.components.ValidatedTextField
 import com.notifyu.app.presentation.viewmodel.MainViewModel
+import com.notifyu.app.presentation.viewmodel.states.AuthNavEvent
+import com.notifyu.app.presentation.viewmodel.states.UiState
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SignupScreen(navController: NavController, mainViewModel: MainViewModel) {
+
     val context = LocalContext.current
+
     // EMAIL VALIDATION
     val email = remember { mutableStateOf("") }
-    val isEmailValid = remember(email.value) {
-        android.util.Patterns.EMAIL_ADDRESS.matcher(email.value).matches()
-    }
-    val showEmailError = remember { mutableStateOf(false) }
+    val emailError by mainViewModel.emailValidationError.collectAsState()
 
     // PASSWORD VALIDATION
     val password = remember { mutableStateOf("") }
-    val passwordPattern = "^(?=.*[A-Z])(?=.*\\d).{8,}$"
-    val isPasswordValid = remember(password.value) {
-        Regex(passwordPattern).matches(password.value)
-    }
-    val showPasswordError = remember { mutableStateOf(false) }
-
-    // Confirm password
-    val confirmPassword = remember { mutableStateOf("") }
-    val isConfirmPasswordValid = remember(password.value, confirmPassword.value) {
-        confirmPassword.value == password.value && confirmPassword.value.isNotEmpty()
-    }
-    val showConfirmPasswordError = remember { mutableStateOf(false) }
-
-    // Password visibility toggles
+    val passwordError by mainViewModel.passwordValidationError.collectAsState()
     val passwordVisible = remember { mutableStateOf(false) }
+
+    // CONFIRM PASSWORD VALIDATION
+    val confirmPassword = remember { mutableStateOf("") }
+    val confirmPasswordError by mainViewModel.confirmPasswordValidationError.collectAsState()
     val confirmPasswordVisible = remember { mutableStateOf(false) }
 
-    var isCreatingAccount by remember { mutableStateOf(false) }
+    //  UI STATES
+    val signingState by mainViewModel.isSigning.collectAsState()
+    val navEvent by mainViewModel.navigation.collectAsState()
 
-    val currentUser by remember { mutableStateOf(mainViewModel.auth.currentUser) }
-
-    LaunchedEffect(true) {
-        if (currentUser != null && currentUser!!.isEmailVerified) {
-            navController.navigate(MainScreenRoutes.HomeScreen.route)
-        } else if (currentUser != null && !currentUser!!.isEmailVerified) {
-            navController.navigate(AuthScreenRoutes.VerifyEmailScreen.route)
-
+    LaunchedEffect(navEvent) {
+        when (navEvent) {
+            AuthNavEvent.ToHome -> {
+                navController.navigate(MainScreenRoutes.HomeScreen.route)
+                mainViewModel.resetNavigation()
+            }
+            AuthNavEvent.ToVerifyEmail -> {
+                navController.navigate(AuthScreenRoutes.VerifyEmailScreen.route)
+                mainViewModel.resetNavigation()
+            }
+            else -> {}
         }
     }
+
+
 
     Scaffold(containerColor = BackgroundColor) { innerPadding ->
         Column(
@@ -106,210 +107,47 @@ fun SignupScreen(navController: NavController, mainViewModel: MainViewModel) {
 
             LottieAnimations(modifier = Modifier.weight(1f), R.raw.signup_lottie)
 
-            OutlinedTextField(
-                value = email.value,
-                onValueChange = {
-                    email.value = it
-                    showEmailError.value = it.isNotEmpty() && !isEmailValid
-                },
-                isError = showEmailError.value,
-                label = { Text("Email") },
-                textStyle = TextStyle(color = Color.Black),
-                modifier = Modifier.fillMaxWidth(),
-                supportingText = {
-                    if (showEmailError.value) {
-                        Text("Please enter a valid email address", color = Color.Red)
-                    }
-                },
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedTextColor = Color.Black,
-                    unfocusedTextColor = Color.Black,
-                    errorTextColor = Color.Red,  // Set error text color to red
-
-                    cursorColor = Color.Black,
-                    errorCursorColor = Color.Red,
-
-                    focusedBorderColor = Color.Black,
-                    unfocusedBorderColor = Color.Gray,
-                    errorBorderColor = Color.Red,
-
-                    focusedLeadingIconColor = Color.Black,
-                    unfocusedLeadingIconColor = Color.Gray,
-                    errorLeadingIconColor = Color.Red,
-
-                    focusedTrailingIconColor = Color.Black,
-                    unfocusedTrailingIconColor = Color.Gray,
-                    disabledTrailingIconColor = Color.Gray,
-                    errorTrailingIconColor = Color.Red,
-
-                    focusedLabelColor = Color.Black,
-                    unfocusedLabelColor = Color.Gray,
-                    disabledLabelColor = Color.Gray,
-                    errorLabelColor = Color.Red,
-
-                    )
+            ValidatedTextField(
+                label = "Email",
+                value = email,
+                isError = emailError,
+                errorMessage = "Please enter a valid email",
+                validator = { mainViewModel.validateEmail(it) }
             )
 
-            OutlinedTextField(
-                value = password.value,
-                onValueChange = {
-                    password.value = it
-                    showPasswordError.value = it.isNotEmpty() && !isPasswordValid
-                    showConfirmPasswordError.value =
-                        confirmPassword.value.isNotEmpty() && confirmPassword.value != it
-                },
-                isError = showPasswordError.value,
-                label = { Text("Password") },
-                textStyle = TextStyle(color = Color.Black),
-                modifier = Modifier.fillMaxWidth(),
-                visualTransformation = if (passwordVisible.value) VisualTransformation.None else PasswordVisualTransformation(),
-                trailingIcon = {
-                    val image = if (passwordVisible.value)
-                        painterResource(R.drawable.ic_visibility)
-                    else painterResource(R.drawable.ic_visibility_off)
-                    IconButton(onClick = { passwordVisible.value = !passwordVisible.value }) {
-                        Icon(
-                            painter = image,
-                            contentDescription = if (passwordVisible.value) "Hide password" else "Show password",
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
-                },
-                supportingText = {
-                    if (showPasswordError.value) {
-                        Text(
-                            "Password must be at least 8 characters, contain one uppercase letter and one digit",
-                            color = Color.Red
-                        )
-                    }
-                },
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedTextColor = Color.Black,
-                    unfocusedTextColor = Color.Black,
-                    errorTextColor = Color.Red,  // Set error text color to red
 
-                    cursorColor = Color.Black,
-                    errorCursorColor = Color.Red,
-
-                    focusedBorderColor = Color.Black,
-                    unfocusedBorderColor = Color.Gray,
-                    errorBorderColor = Color.Red,
-
-                    focusedLeadingIconColor = Color.Black,
-                    unfocusedLeadingIconColor = Color.Gray,
-                    errorLeadingIconColor = Color.Red,
-
-                    focusedTrailingIconColor = Color.Black,
-                    unfocusedTrailingIconColor = Color.Gray,
-                    disabledTrailingIconColor = Color.Gray,
-                    errorTrailingIconColor = Color.Red,
-
-                    focusedLabelColor = Color.Black,
-                    unfocusedLabelColor = Color.Gray,
-                    disabledLabelColor = Color.Gray,
-                    errorLabelColor = Color.Red,
-
-                    )
+            ValidatedTextField(
+                label = "Password",
+                value = password,
+                isError = passwordError,
+                errorMessage = "Password must be 8+ chars, with 1 uppercase & 1 digit",
+                validator = { mainViewModel.validatePassword(it) },
+                isPassword = true,
+                passwordVisible = passwordVisible
             )
 
-            OutlinedTextField(
-                value = confirmPassword.value,
-                onValueChange = {
-                    confirmPassword.value = it
-                    showConfirmPasswordError.value = it.isNotEmpty() && it != password.value
-                },
-                isError = showConfirmPasswordError.value,
-                label = { Text("Confirm Password") },
-                textStyle = TextStyle(color = Color.Black),
-                modifier = Modifier.fillMaxWidth(),
-                visualTransformation = if (confirmPasswordVisible.value) VisualTransformation.None else PasswordVisualTransformation(),
-                trailingIcon = {
-                    val image = if (confirmPasswordVisible.value)
-                        painterResource(R.drawable.ic_visibility)
-                    else painterResource(R.drawable.ic_visibility_off)
-                    IconButton(onClick = {
-                        confirmPasswordVisible.value = !confirmPasswordVisible.value
-                    }) {
-                        Icon(
-                            painter = image,
-                            contentDescription = if (confirmPasswordVisible.value) "Hide password" else "Show password",
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
-                },
-                supportingText = {
-                    if (showConfirmPasswordError.value) {
-                        Text("Passwords do not match", color = Color.Red)
-                    }
-                },
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedTextColor = Color.Black,
-                    unfocusedTextColor = Color.Black,
-                    errorTextColor = Color.Red,  // Set error text color to red
 
-                    cursorColor = Color.Black,
-                    errorCursorColor = Color.Red,
-
-                    focusedBorderColor = Color.Black,
-                    unfocusedBorderColor = Color.Gray,
-                    errorBorderColor = Color.Red,
-
-                    focusedLeadingIconColor = Color.Black,
-                    unfocusedLeadingIconColor = Color.Gray,
-                    errorLeadingIconColor = Color.Red,
-
-                    focusedTrailingIconColor = Color.Black,
-                    unfocusedTrailingIconColor = Color.Gray,
-                    disabledTrailingIconColor = Color.Gray,
-                    errorTrailingIconColor = Color.Red,
-
-                    focusedLabelColor = Color.Black,
-                    unfocusedLabelColor = Color.Gray,
-                    disabledLabelColor = Color.Gray,
-                    errorLabelColor = Color.Red,
-
-                    )
+            ValidatedTextField(
+                label = "Confirm Password",
+                value = confirmPassword,
+                isError = confirmPasswordError,
+                errorMessage = "Passwords do not match",
+                validator = { mainViewModel.validateConfirmPassword(password.value, it) },
+                isPassword = true,
+                passwordVisible = confirmPasswordVisible
             )
 
             Button(
                 onClick = {
-                    if (isEmailValid && isPasswordValid && isConfirmPasswordValid) {
-                        isCreatingAccount = true
-//                        mainViewModel.signUp(
-//                            email = email.value,
-//                            password = password.value,
-//                            onResult = { isSuccess, message ->
-//                                if (isSuccess) {
-//                                    isCreatingAccount = false
-//                                    navController.navigate(AuthScreenRoutes.VerifyEmailScreen.route)
-//                                } else {
-//                                    isCreatingAccount = false
-//                                    Toast.makeText(context, "Error", Toast.LENGTH_SHORT).show()
-//                                }
-//                            })
-                        mainViewModel.authSignup(
-                            email = email.value,
-                            code = password.value,
-                            onResult = { isSuccess, message ->
-                                if (isSuccess) {
-                                    isCreatingAccount = false
-                                    navController.navigate(AuthScreenRoutes.VerifyEmailScreen.route)
-                                } else {
-                                    isCreatingAccount = false
-                                    Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
-                                }
-                            })
-                    } else {
-                        showEmailError.value = !isEmailValid
-                        showPasswordError.value = !isPasswordValid
-                        showConfirmPasswordError.value = !isConfirmPasswordValid
-                    }
+                    mainViewModel.onSignupClicked(email.value,password.value,confirmPassword.value)
                 },
+                enabled = signingState !is UiState.Loading,
                 shape = RoundedCornerShape(4.dp),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text("Signup")
             }
+
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -327,13 +165,28 @@ fun SignupScreen(navController: NavController, mainViewModel: MainViewModel) {
                 )
             }
 
-            if (isCreatingAccount) {
-                AsyncProgressDialog(
-                    showDialog = isCreatingAccount,
-                    "Account creating"
-                )
-            }
+            when (signingState) {
+                is UiState.Loading -> {
+                    AsyncProgressDialog(
+                        showDialog = true,
+                        "Account creating"
+                    )
+                }
 
+                is UiState.Success -> {
+                    //navController.navigate(AuthScreenRoutes.VerifyEmailScreen.route)
+                }
+
+                is UiState.Error -> {
+                    val errorMessage = (signingState as UiState.Error).message
+                    Toast.makeText(context, errorMessage, Toast.LENGTH_SHORT).show()
+
+                }
+
+                is UiState.Idle -> {
+
+                }
+            }
         }
     }
 }
