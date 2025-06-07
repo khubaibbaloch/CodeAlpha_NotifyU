@@ -44,6 +44,7 @@ import java.io.InputStream
 import kotlin.String
 import kotlin.collections.get
 import androidx.compose.runtime.*
+import androidx.compose.ui.platform.LocalContext
 import com.notifyu.app.presentation.viewmodel.states.AuthNavEvent
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
@@ -53,8 +54,9 @@ class MainViewModel @Inject constructor(
     private val authUseCases: AuthUseCases,
     private val organizationUseCase: OrganizationUseCase,
     private val userUseCase: UserUseCase,
-    private val notificationUseCase: NotificationUseCase
+    private val notificationUseCase: NotificationUseCase,
 ) : ViewModel() {
+
 
     val auth: FirebaseAuth = FirebaseAuth.getInstance()
     val db = Firebase.firestore
@@ -80,21 +82,20 @@ class MainViewModel @Inject constructor(
     val emailValidationError: StateFlow<Boolean> = _emailValidationError
 
     private val _passwordValidationError = MutableStateFlow<Boolean>(false)
-        val passwordValidationError : StateFlow<Boolean> = _passwordValidationError
+    val passwordValidationError: StateFlow<Boolean> = _passwordValidationError
 
     private val _confirmPasswordValidationError = MutableStateFlow<Boolean>(false)
-    val confirmPasswordValidationError : StateFlow<Boolean> = _confirmPasswordValidationError
+    val confirmPasswordValidationError: StateFlow<Boolean> = _confirmPasswordValidationError
 
 
     private val _isSigning = MutableStateFlow<UiState<String>>(UiState.Idle)
-    val isSigning : StateFlow<UiState<String>> = _isSigning
+    val isSigning: StateFlow<UiState<String>> = _isSigning
 
     private val _navigation = MutableStateFlow<AuthNavEvent>(AuthNavEvent.None)
     val navigation: StateFlow<AuthNavEvent> = _navigation
 
-    private val _uiMessage = MutableSharedFlow<String>()
-    val uiMessage = _uiMessage.asSharedFlow()
-
+    private val _uiMessage = MutableStateFlow<String>("")
+    val uiMessage: StateFlow<String> = _uiMessage
 
 
     init {
@@ -122,7 +123,7 @@ class MainViewModel @Inject constructor(
     }
 
     fun validateConfirmPassword(password: String, confirmPassword: String): Boolean {
-        val valid = authUseCases.signUp.validateConfirmPassword(password,confirmPassword)
+        val valid = authUseCases.signUp.validateConfirmPassword(password, confirmPassword)
         _confirmPasswordValidationError.value = !valid
         return valid
     }
@@ -137,25 +138,28 @@ class MainViewModel @Inject constructor(
                 _navigation.value = AuthNavEvent.ToVerifyEmail
                 //onResult(true, "Account created")
             }.onFailure { error ->
-                _isSigning.value = UiState.Error("An error occurred. Please try again.")
-               // onResult(false, "An error occurred. Please try again.")
+                _isSigning.value = UiState.Error( "An error occurred. Please try again.")
+                // onResult(false, "An error occurred. Please try again.")
             }
         }
     }
 
     fun onSignupClicked(email: String, password: String, confirmPassword: String) {
         if (email.isBlank() || password.isBlank() || confirmPassword.isBlank()) {
-            viewModelScope.launch {
-                _isSigning.value = UiState.Error("Please fill in all fields")
-                }
+
+            _uiMessage.value = "Please fill in all fields"
+
             return
         }
-        if (!validateEmail(email) || !validatePassword(password) || !validateConfirmPassword(password, confirmPassword)) {
-            viewModelScope.launch {
-                _isSigning.value = UiState.Error("Validation failed") }
+        if (!validateEmail(email) || !validatePassword(password) || !validateConfirmPassword(
+                password,
+                confirmPassword
+            )
+        ) {
+            _uiMessage.value = "Validation failed"
             return
         }
-        Signup(email,password)
+        Signup(email, password)
     }
 
     fun checkUserAndNavigate() {
@@ -166,12 +170,18 @@ class MainViewModel @Inject constructor(
             else -> AuthNavEvent.None
         }
     }
+
     fun resetNavigation() {
         _navigation.value = AuthNavEvent.None
         _emailValidationError.value = false
         _passwordValidationError.value = false
         _confirmPasswordValidationError.value = false
     }
+
+    fun clearUiMessage() {
+        _uiMessage.value = ""
+    }
+
 
     // SIGNUP FUNTICONS
     fun authSendEmailVerification(onResult: (Boolean, String) -> Unit) {
@@ -208,7 +218,6 @@ class MainViewModel @Inject constructor(
             }
         }
     }
-
 
 
     // NOT IN USE REPLACED BY THE authSendPasswordResetEmail()
@@ -267,7 +276,6 @@ class MainViewModel @Inject constructor(
     }
 
 
-
     fun authFetchOwnedOrganizations() {
         organizationUseCase.getOwnedOrgs {
             _organizationsOwned.value = it
@@ -288,7 +296,7 @@ class MainViewModel @Inject constructor(
         onResult: (Boolean, String) -> Unit,
     ) {
         viewModelScope.launch {
-            val result =  organizationUseCase.joinOrg(name = name, code = code)
+            val result = organizationUseCase.joinOrg(name = name, code = code)
             result.onSuccess { message ->
                 onResult(true, message)
             }.onFailure { error ->
@@ -386,7 +394,10 @@ class MainViewModel @Inject constructor(
     ) {
         viewModelScope.launch {
 
-            val result = organizationUseCase.updateAvatarIndex(orgId = orgId, newAvatarIndex = newAvatarIndex)
+            val result = organizationUseCase.updateAvatarIndex(
+                orgId = orgId,
+                newAvatarIndex = newAvatarIndex
+            )
             result.onSuccess { message ->
                 onResult(true, message)
             }.onFailure { error ->

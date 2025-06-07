@@ -70,6 +70,7 @@ fun SignupScreen(navController: NavController, mainViewModel: MainViewModel) {
     //  UI STATES
     val signingState by mainViewModel.isSigning.collectAsState()
     val navEvent by mainViewModel.navigation.collectAsState()
+    val uiMessage by mainViewModel.uiMessage.collectAsState()
 
     LaunchedEffect(navEvent) {
         when (navEvent) {
@@ -84,6 +85,14 @@ fun SignupScreen(navController: NavController, mainViewModel: MainViewModel) {
             else -> {}
         }
     }
+
+    LaunchedEffect(uiMessage) {
+        if (uiMessage.isNotEmpty()) {
+            Toast.makeText(context, uiMessage, Toast.LENGTH_SHORT).show()
+            mainViewModel.clearUiMessage()
+        }
+    }
+
 
 
 
