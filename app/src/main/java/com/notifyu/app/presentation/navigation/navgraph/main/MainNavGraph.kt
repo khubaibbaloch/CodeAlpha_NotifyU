@@ -14,18 +14,18 @@ import com.notifyu.app.presentation.viewmodel.MainViewModel
 
 fun NavGraphBuilder.mainNavGraph(navController: NavHostController, mainViewModel: MainViewModel) {
     navigation(
-        startDestination = MainScreenRoutes.HomeScreen.route,
+        startDestination =  MainScreenRoutes.HomeScreen.route,
         route = MainScreenRoutes.MainScreenRoot.route
     ) {
         composable(MainScreenRoutes.HomeScreen.route) {
             HomeScreen(navController = navController, mainViewModel = mainViewModel)
         }
-        composable(MainScreenRoutes.OrganizationJoinedScreen.route) {
-            OrganizationJoinedScreen(navController = navController, mainViewModel = mainViewModel)
-        }
-        composable(MainScreenRoutes.OrganizationOwnedScreen.route) {
-            OrganizationOwnedScreen(navController = navController, mainViewModel = mainViewModel)
-        }
+//        composable(MainScreenRoutes.OrganizationJoinedScreen.route) {
+//            OrganizationJoinedScreen(navController = navController, mainViewModel = mainViewModel)
+//        }
+//        composable(MainScreenRoutes.OrganizationOwnedScreen.route) {
+//            OrganizationOwnedScreen(navController = navController, mainViewModel = mainViewModel)
+//        }
         composable(MainScreenRoutes.ChatScreen.route) {
             EventChatScreen(navController, mainViewModel)
         }

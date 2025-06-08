@@ -87,12 +87,16 @@ dependencies {
     implementation(platform("com.google.firebase:firebase-bom:33.14.0"))
     implementation("com.google.firebase:firebase-auth")
     implementation("com.google.firebase:firebase-firestore-ktx")
-    //implementation("com.google.android.gms:play-services-auth:21.3.0")
     implementation("com.google.firebase:firebase-analytics")
     implementation("com.google.firebase:firebase-messaging")
 
     implementation("com.google.auth:google-auth-library-oauth2-http:1.23.0")
     implementation("com.squareup.okhttp3:okhttp:4.9.3")
+
+
+    // Splash Screen
+    implementation("androidx.core:core-splashscreen:1.0.1")
+
 
 
 

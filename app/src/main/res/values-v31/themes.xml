@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+
+    <style name="Theme.NotifyU" parent="android:Theme.Material.Light.NoActionBar">
+        <!-- Splash screen background -->
+        <item name="android:windowSplashScreenBackground">@color/white</item>
+
+        <!-- Splash screen icon -->
+        <item name="android:windowSplashScreenAnimatedIcon">
+            @drawable/ic_launcher_foreground
+        </item>
+
+        <!-- Icon background color -->
+        <item name="android:windowSplashScreenIconBackgroundColor">@color/white</item>
+
+        <!-- After splash, use this theme -->
+        <item name="postSplashScreenTheme">@style/Theme.NotifyU</item>
+    </style>
+
+</resources>

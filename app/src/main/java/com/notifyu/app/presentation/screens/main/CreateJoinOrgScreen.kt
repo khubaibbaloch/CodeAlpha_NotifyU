@@ -23,13 +23,19 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import com.notifyu.app.presentation.navigation.navgraph.main.MainScreenRoutes
+import com.notifyu.app.presentation.screens.components.AsyncProgressDialog
+import com.notifyu.app.presentation.screens.components.ValidatedTextField
 import com.notifyu.app.presentation.theme.PrimaryColor
+import com.notifyu.app.presentation.viewmodel.states.UiState
 
 @Composable
 fun CreateJoinOrgScreen(navController: NavController, mainViewModel: MainViewModel) {
 
     val context = LocalContext.current
+    //  UI STATES
+    val createJoinOrgState by mainViewModel.createJoinOrgState.collectAsState()
     val isAddOrg by mainViewModel.isAddOrg.collectAsState()
+
     val organizationName = remember { mutableStateOf("") }
     val organizationCode = remember { mutableStateOf("") }
 
@@ -43,49 +49,46 @@ fun CreateJoinOrgScreen(navController: NavController, mainViewModel: MainViewMod
                 organizationName = organizationName,
                 organizationCode = organizationCode,
                 onResult = {
-//                    mainViewModel.addOrganization(
-//                        name = organizationName.value,
-//                        code = organizationCode.value,
-//                        onResult = { isSuccess, message ->
-//                            Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
-//                            if (isSuccess){
-//                                navController.navigate(MainScreenRoutes.HomeScreen.route)
-//                            }
-//                        })
                     mainViewModel.authAddOrganization(
                         name = organizationName.value,
                         code = organizationCode.value,
-                        onResult = { isSuccess, message ->
-                            Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
-                            if (isSuccess){
-                                navController.navigate(MainScreenRoutes.HomeScreen.route)
-                            }
-                        })
+                    )
                 })
         } else {
             JoinOrg(
                 organizationName = organizationName,
                 organizationCode = organizationCode,
                 onClick = {
-//                    mainViewModel.joinOrganizationByNameAndCode(
-//                        name = organizationName.value,
-//                        code = organizationCode.value,
-//                        onResult = { isSuccess, message ->
-//                            Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
-//                            if (isSuccess) {
-//                                navController.navigate(MainScreenRoutes.HomeScreen.route)
-//                            }
-//                        })
                     mainViewModel.authJoinOrganizationByNameAndCode(
                         name = organizationName.value,
                         code = organizationCode.value,
-                        onResult = { isSuccess, message ->
-                            Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
-                            if (isSuccess) {
-                                navController.navigate(MainScreenRoutes.HomeScreen.route)
-                            }
-                        })
+                    )
                 })
+        }
+
+        when (createJoinOrgState) {
+            is UiState.Loading -> {
+                AsyncProgressDialog(
+                    showDialog = true,
+                    "Processing..."
+                )
+            }
+
+            is UiState.Success -> {
+                val message = (createJoinOrgState as UiState.Success).data
+                Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+                navController.navigate(MainScreenRoutes.HomeScreen.route)
+            }
+
+            is UiState.Error -> {
+                val errorMessage = (createJoinOrgState as UiState.Error).message
+                Toast.makeText(context, errorMessage, Toast.LENGTH_SHORT).show()
+
+            }
+
+            is UiState.Idle -> {
+
+            }
         }
     }
 }
@@ -97,75 +100,21 @@ fun CreateOrg(
     onResult: () -> Unit,
 ) {
     Column(modifier = Modifier.fillMaxSize()) {
-        OutlinedTextField(
-            value = organizationName.value,
-            onValueChange = { organizationName.value = it },
-            label = { Text("Organization name") },
-            textStyle = TextStyle(color = Color.Black),
-            modifier = Modifier.fillMaxWidth(),
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedTextColor = Color.Black,
-                unfocusedTextColor = Color.Black,
-                errorTextColor = Color.Red,
-
-                cursorColor = Color.Black,
-                errorCursorColor = Color.Red,
-
-                focusedBorderColor = Color.Black,
-                unfocusedBorderColor = Color.Gray,
-                errorBorderColor = Color.Red,
-
-                focusedLeadingIconColor = Color.Black,
-                unfocusedLeadingIconColor = Color.Gray,
-                errorLeadingIconColor = Color.Red,
-
-                focusedTrailingIconColor = Color.Black,
-                unfocusedTrailingIconColor = Color.Gray,
-                disabledTrailingIconColor = Color.Gray,
-                errorTrailingIconColor = Color.Red,
-
-                focusedLabelColor = Color.Black,
-                unfocusedLabelColor = Color.Gray,
-                disabledLabelColor = Color.Gray,
-                errorLabelColor = Color.Red,
-
-                )
-        )
-        OutlinedTextField(
-            value = organizationCode.value,
-            onValueChange = { organizationCode.value = it },
-            label = { Text("Organization code") },
-            textStyle = TextStyle(color = Color.Black),
-            modifier = Modifier.fillMaxWidth(),
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedTextColor = Color.Black,
-                unfocusedTextColor = Color.Black,
-                errorTextColor = Color.Red,
-
-                cursorColor = Color.Black,
-                errorCursorColor = Color.Red,
-
-                focusedBorderColor = Color.Black,
-                unfocusedBorderColor = Color.Gray,
-                errorBorderColor = Color.Red,
-
-                focusedLeadingIconColor = Color.Black,
-                unfocusedLeadingIconColor = Color.Gray,
-                errorLeadingIconColor = Color.Red,
-
-                focusedTrailingIconColor = Color.Black,
-                unfocusedTrailingIconColor = Color.Gray,
-                disabledTrailingIconColor = Color.Gray,
-                errorTrailingIconColor = Color.Red,
-
-                focusedLabelColor = Color.Black,
-                unfocusedLabelColor = Color.Gray,
-                disabledLabelColor = Color.Gray,
-                errorLabelColor = Color.Red,
-
-                )
+        ValidatedTextField(
+            label = "Organization name",
+            value = organizationName,
+            isError = false,
+            errorMessage = "",
+            validator = { false }
         )
 
+        ValidatedTextField(
+            label = "Organization code",
+            value = organizationCode,
+            isError = false,
+            errorMessage = "",
+            validator = { false }
+        )
         Button(
             onClick = { onResult() },
             modifier = Modifier.fillMaxWidth(),
@@ -184,74 +133,22 @@ fun JoinOrg(
     onClick: () -> Unit,
 ) {
     Column(modifier = Modifier.fillMaxSize()) {
-        OutlinedTextField(
-            value = organizationName.value,
-            onValueChange = { organizationName.value = it },
-            label = { Text("Organization name") },
-            textStyle = TextStyle(color = Color.Black),
-            modifier = Modifier.fillMaxWidth(),
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedTextColor = Color.Black,
-                unfocusedTextColor = Color.Black,
-                errorTextColor = Color.Red,
-
-                cursorColor = Color.Black,
-                errorCursorColor = Color.Red,
-
-                focusedBorderColor = Color.Black,
-                unfocusedBorderColor = Color.Gray,
-                errorBorderColor = Color.Red,
-
-                focusedLeadingIconColor = Color.Black,
-                unfocusedLeadingIconColor = Color.Gray,
-                errorLeadingIconColor = Color.Red,
-
-                focusedTrailingIconColor = Color.Black,
-                unfocusedTrailingIconColor = Color.Gray,
-                disabledTrailingIconColor = Color.Gray,
-                errorTrailingIconColor = Color.Red,
-
-                focusedLabelColor = Color.Black,
-                unfocusedLabelColor = Color.Gray,
-                disabledLabelColor = Color.Gray,
-                errorLabelColor = Color.Red,
-
-                )
+        ValidatedTextField(
+            label = "Organization name",
+            value = organizationName,
+            isError = false,
+            errorMessage = "",
+            validator = { false }
         )
-        OutlinedTextField(
-            value = organizationCode.value,
-            onValueChange = { organizationCode.value = it },
-            label = { Text("Organization code") },
-            textStyle = TextStyle(color = Color.Black),
-            modifier = Modifier.fillMaxWidth(),
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedTextColor = Color.Black,
-                unfocusedTextColor = Color.Black,
-                errorTextColor = Color.Red,
 
-                cursorColor = Color.Black,
-                errorCursorColor = Color.Red,
-
-                focusedBorderColor = Color.Black,
-                unfocusedBorderColor = Color.Gray,
-                errorBorderColor = Color.Red,
-
-                focusedLeadingIconColor = Color.Black,
-                unfocusedLeadingIconColor = Color.Gray,
-                errorLeadingIconColor = Color.Red,
-
-                focusedTrailingIconColor = Color.Black,
-                unfocusedTrailingIconColor = Color.Gray,
-                disabledTrailingIconColor = Color.Gray,
-                errorTrailingIconColor = Color.Red,
-
-                focusedLabelColor = Color.Black,
-                unfocusedLabelColor = Color.Gray,
-                disabledLabelColor = Color.Gray,
-                errorLabelColor = Color.Red,
-
-                )
+        ValidatedTextField(
+            label = "Organization code",
+            value = organizationCode,
+            isError = false,
+            errorMessage = "",
+            validator = { false }
         )
+
 
         Button(
             onClick = { onClick() },

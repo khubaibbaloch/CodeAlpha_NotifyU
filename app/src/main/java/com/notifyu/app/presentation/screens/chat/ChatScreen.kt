@@ -60,48 +60,63 @@ import com.notifyu.app.R
 import com.notifyu.app.data.model.Message
 import com.notifyu.app.data.model.Organization
 import com.notifyu.app.presentation.navigation.navgraph.main.MainScreenRoutes
+import com.notifyu.app.presentation.screens.main.components.getAvatarList
 import com.notifyu.app.presentation.theme.SurfaceColor
 import com.notifyu.app.presentation.viewmodel.MainViewModel
+import com.notifyu.app.presentation.viewmodel.states.AuthNavEvent
 import kotlinx.coroutines.launch
 
 @Composable
 fun EventChatScreen(navController: NavController, mainViewModel: MainViewModel) {
     val context = LocalContext.current
+
     var selectedTabIndex by remember { mutableStateOf(0) }
-    val tabTitles = listOf("Messages", "People", "Setting")
+//    val orgEmails = remember { mutableStateListOf<String>() }
+//    val orgFcmTokens = remember { mutableStateListOf<String>() }
+//    val orgUids = remember { mutableStateListOf<String>() }
 
     val organizationOwned by mainViewModel.organizationsOwned.collectAsState()
     val organizationId by mainViewModel.onOrganizationsClick.collectAsState()
     val organizationsMemberOf by mainViewModel.organizationsMemberOf.collectAsState()
-    val currentUser = mainViewModel.auth.currentUser
-
-
-    val selectedOrganization = remember(organizationOwned, organizationsMemberOf, organizationId) {
-        organizationOwned.find { it.id == organizationId }
-            ?: organizationsMemberOf.find { it.id == organizationId }
-    }
-
-    val isOwner = remember(selectedOrganization, currentUser) {
-        selectedOrganization?.owner == currentUser?.uid
-    }
-
+    val currentUser by mainViewModel.currentUser.collectAsState()
     val messages by mainViewModel.onOrgMessages.collectAsState()
+    val selectedOrg by mainViewModel.selectedOrganization.collectAsState()
 
-    val orgEmails = remember { mutableStateListOf<String>() }
-    val orgFcmTokens = remember { mutableStateListOf<String>() }
-    val orgUids = remember { mutableStateListOf<String>() }
+
+    val tabTitles = listOf("Messages", "People", "Setting")
+
+
+//    val selectedOrganization = remember(organizationOwned, organizationsMemberOf, organizationId) {
+//        organizationOwned.find { it.id == organizationId }
+//            ?: organizationsMemberOf.find { it.id == organizationId }
+//    }
+
+//    val isOwner = remember(selectedOrg, currentUser) {
+//        selectedOrg?.owner == currentUser?.uid
+//    }
+
+    val avatarList = getAvatarList()
+
+    val avatarIndex = selectedOrg?.avatarIndex ?: 0
+    val avatarRes = avatarList.getOrElse(avatarIndex) { avatarList[0] }
 
 
     LaunchedEffect(messages.size) {
-        //mainViewModel.fetchMessagesForOrganization(organizationId)
         mainViewModel.authFetchMessagesForOrganization(organizationId)
     }
-
-    LaunchedEffect(selectedOrganization?.members) {
-
-        val memberIds = selectedOrganization?.members ?: emptyList()
-//        mainViewModel.fetchUsersByIds(memberIds) { fetchedUsers ->
-//            Log.d("EventChatScreen", "Fetched Users: ${fetchedUsers.map { it.uid }}")
+    LaunchedEffect(key1 = organizationId) {
+        mainViewModel.updateSelectedOrganization(
+            organizationOwned = organizationOwned,
+            organizationsMemberOf = organizationsMemberOf,
+            organizationId = organizationId
+        )
+        mainViewModel.updateIsOwner(currentUser?.uid ?: "null", selectedOrg)
+    }
+//    LaunchedEffect(selectedOrganization?.members) {
+//
+//        val memberIds = selectedOrganization?.members ?: emptyList()
+//
+//        mainViewModel.authFetchUsersByIds(memberIds) { fetchedUsers ->
 //            orgEmails.clear()
 //            orgFcmTokens.clear()
 //            orgUids.clear()
@@ -114,52 +129,39 @@ fun EventChatScreen(navController: NavController, mainViewModel: MainViewModel) 
 //
 //            val currentUid = currentUser?.uid
 //            if (currentUid != null && !isOwner && currentUid !in orgUids) {
-//                Log.d("EventChatScreen", "You have been removed from the organization")
-//                //Toast.makeText(context, "You have been removed from the organization", Toast.LENGTH_SHORT).show()
 //                navController.navigate(MainScreenRoutes.HomeScreen.route) {
-//                    popUpTo(0) // Optional: clears backstack
+//                    popUpTo(0)
 //                }
 //            }
 //        }
+//    }
 
-        mainViewModel.authFetchUsersByIds(memberIds) { fetchedUsers ->
-            orgEmails.clear()
-            orgFcmTokens.clear()
-            orgUids.clear()
+    val orgEmails by mainViewModel.orgEmails.collectAsState()
+    val orgFcmTokens by mainViewModel.orgFcmTokens.collectAsState()
+    val orgUids by mainViewModel.orgUids.collectAsState()
+    val isOwner by mainViewModel.isOwner.collectAsState()
+    val navEvent by mainViewModel.navigation.collectAsState()
 
-            fetchedUsers.forEach { user ->
-                orgEmails.add(user.email)
-                orgFcmTokens.add(user.fcmToken)
-                orgUids.add(user.uid)
-            }
+//
+//    val orgUsers by mainViewModel.orgUsers.collectAsState()
+//    val shouldRedirectHome by mainViewModel.shouldRedirectHome.collectAsState()
 
-            val currentUid = currentUser?.uid
-            if (currentUid != null && !isOwner && currentUid !in orgUids) {
+    LaunchedEffect(selectedOrg?.members) {
+        val memberIds = selectedOrg?.members ?: emptyList()
+        mainViewModel.fetchAndCheckOrgUsers(memberIds, currentUser?.uid, isOwner)
+    }
+
+    LaunchedEffect(navEvent) {
+        when (navEvent) {
+            is AuthNavEvent.ToHome -> {
                 navController.navigate(MainScreenRoutes.HomeScreen.route) {
                     popUpTo(0)
                 }
+                mainViewModel.resetNavigation()
             }
+            else -> {}
         }
     }
-
-    val avatarList = listOf(
-        R.drawable.avatar_index_0,
-        R.drawable.avatar_index_1,
-        R.drawable.avatar_index_2,
-        R.drawable.avatar_index_3,
-        R.drawable.avatar_index_4,
-        R.drawable.avatar_index_5,
-        R.drawable.avatar_index_6,
-        R.drawable.avatar_index_7,
-        R.drawable.avatar_index_8,
-        R.drawable.avatar_index_9,
-    )
-
-    val avatarIndex = selectedOrganization?.avatarIndex ?: 0
-    val avatarRes = avatarList.getOrElse(avatarIndex) { avatarList[0] }
-
-
-
 
     Column {
         TabRow(
@@ -192,8 +194,9 @@ fun EventChatScreen(navController: NavController, mainViewModel: MainViewModel) 
         }
         when (selectedTabIndex) {
             0 -> EventMessagesTab(
+                currentUserUid = currentUser?.uid ?: "null",
                 isOwner = isOwner,
-                organizationName = selectedOrganization?.name ?: "null",
+                organizationName = selectedOrg?.name ?: "null",
                 messages = messages,
                 orgFcmTokens = orgFcmTokens,
                 mainViewModel = mainViewModel
@@ -206,7 +209,7 @@ fun EventChatScreen(navController: NavController, mainViewModel: MainViewModel) 
             )
 
             2 -> EventSettingsTab(
-                organization = selectedOrganization,
+                organization = selectedOrg,
                 currentUser = currentUser?.email.toString(),
                 organizationAvatar = avatarRes,
                 mainViewModel = mainViewModel,
@@ -218,6 +221,7 @@ fun EventChatScreen(navController: NavController, mainViewModel: MainViewModel) 
 
 @Composable
 fun EventMessagesTab(
+    currentUserUid: String,
     isOwner: Boolean,
     organizationName: String,
     messages: List<Message>,
@@ -283,40 +287,22 @@ fun EventMessagesTab(
                             if (text.isNotEmpty()) {
                                 textFieldValue.value = ""
                                 val tempValue = textFieldValue.value
-//                                mainViewModel.addMessage(
-//                                    content = text,
-//                                    senderId = mainViewModel.auth.currentUser!!.uid
-//                                ) { isSuccess, message ->
-//                                    if (isSuccess) {
-//                                        mainViewModel.sendFcmPushNotification(
-//                                            context = context,
-//                                            targetTokens = orgFcmTokens,
-//                                            title = organizationName,
-//                                            body = tempValue
-//                                        )
-//                                    } else {
-//                                        Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
-//                                    }
-//                                }
-
                                 mainViewModel.authAddMessage(
                                     content = text,
-                                    senderId = mainViewModel.auth.currentUser!!.uid
+                                    senderId = currentUserUid
                                 ) { isSuccess, message ->
                                     if (isSuccess) {
-//                                        mainViewModel.sendFcmPushNotification(
-//                                            context = context,
-//                                            targetTokens = orgFcmTokens,
-//                                            title = organizationName,
-//                                            body = tempValue
-//                                        )
                                         mainViewModel.authSendFcmPushNotification(
                                             context = context,
                                             targetTokens = orgFcmTokens,
                                             title = organizationName,
                                             body = tempValue
                                         )
-                                        Toast.makeText(context, "${orgFcmTokens.size}", Toast.LENGTH_SHORT).show()
+                                        Toast.makeText(
+                                            context,
+                                            "${orgFcmTokens.size}",
+                                            Toast.LENGTH_SHORT
+                                        ).show()
 
                                     } else {
                                         Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
@@ -389,9 +375,6 @@ fun EventPeopleTab(
                 Spacer(modifier = Modifier.weight(1f))
 
                 IconButton(onClick = {
-//                    mainViewModel.removeMemberFromOrganization(uid) { success, message ->
-//                        Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
-//                    }
                     mainViewModel.authRemoveMemberFromOrganization(uid) { success, message ->
                         Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
                     }
@@ -531,13 +514,6 @@ fun EventSettingsTab(
         avatarList = avatarList,
         selectedAvatarIndex = organization?.avatarIndex ?: 0,
         onAvatarSelected = { selectedIndex ->
-//            mainViewModel.updateOrganizationAvatarIndex(
-//                orgId = organization?.id ?: "",
-//                newAvatarIndex = selectedIndex,
-//                onResult = { success, message ->
-//                    Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
-//                }
-//            )
             mainViewModel.authUpdateOrganizationAvatarIndex(
                 orgId = organization?.id ?: "",
                 newAvatarIndex = selectedIndex,

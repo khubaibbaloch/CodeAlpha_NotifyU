@@ -3,7 +3,6 @@ package com.notifyu.app.domain.repository
 import android.content.Context
 import com.notifyu.app.data.model.Message
 import com.notifyu.app.data.model.Organization
-import com.notifyu.app.data.model.SelectedScreen
 import com.notifyu.app.data.model.User
 
 

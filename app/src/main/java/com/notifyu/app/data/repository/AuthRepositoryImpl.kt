@@ -1,39 +1,37 @@
 package com.notifyu.app.data.repository
 
-import android.content.Context
+
 import android.util.Log
-import com.google.auth.oauth2.GoogleCredentials
 import com.google.firebase.Firebase
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.auth.auth
-import com.google.firebase.firestore.FieldPath
-import com.google.firebase.firestore.FieldValue
-import com.google.firebase.firestore.FirebaseFirestore
-import com.google.firebase.firestore.firestore
-import com.google.firebase.messaging.FirebaseMessaging
-import com.notifyu.app.data.model.Message
-import com.notifyu.app.data.model.Organization
-import com.notifyu.app.data.model.SelectedScreen
-import com.notifyu.app.data.model.User
 import com.notifyu.app.domain.repository.AuthRepository
-
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
-import okhttp3.Dispatcher
-import okhttp3.MediaType.Companion.toMediaType
-import okhttp3.OkHttpClient
-import okhttp3.Request
-import okhttp3.RequestBody.Companion.toRequestBody
-import org.json.JSONObject
-import java.io.InputStream
 import javax.inject.Inject
-import javax.inject.Singleton
+
 
 class AuthRepositoryImpl @Inject constructor(
     private val firebaseAuth: FirebaseAuth,
 ): AuthRepository {
+
+    private val _authStateFlow = MutableStateFlow(firebaseAuth.currentUser)
+    val authStateFlow: StateFlow<FirebaseUser?> = _authStateFlow
+
+    init {
+        firebaseAuth.addAuthStateListener {
+            _authStateFlow.value = it.currentUser
+        }
+    }
+
+    override fun observeAuthState(): StateFlow<FirebaseUser?> = authStateFlow
+
+
     override suspend fun signUp(email: String, password: String): Result<FirebaseUser> =
         withContext(Dispatchers.IO) {
             try {
@@ -46,7 +44,7 @@ class AuthRepositoryImpl @Inject constructor(
                     Result.failure(Exception("User is null"))
                 }
             } catch (e: Exception) {
-                Result.failure(e)
+                Result.failure(Exception( e.localizedMessage ?: "Unknown Error"))
             }
         }
 
@@ -63,7 +61,7 @@ class AuthRepositoryImpl @Inject constructor(
                 user.sendEmailVerification().await()
                 Result.success("Verification email sent successfully")
             } catch (e: Exception) {
-                Result.failure(Exception("Failed to send verification email"))
+                Result.failure(Exception( e.localizedMessage ?: "Unknown Error"))
             }
         }
     }
@@ -74,11 +72,14 @@ class AuthRepositoryImpl @Inject constructor(
                 val user = Firebase.auth.currentUser
                 if (user == null) {
                     return@withContext Result.failure(Exception("User not logged in"))
+                    Log.d("checkEmailVerification", "checkEmailVerification:false 1")
                 }
                 user.reload().await()
+                Log.d("checkEmailVerification", "checkEmailVerification:${user.isEmailVerified} ")
                 Result.success(user.isEmailVerified)
             } catch (e: Exception) {
-                Result.failure(Exception("Failed to check email verification"))
+                Log.d("checkEmailVerification", "checkEmailVerification: false 2")
+                Result.failure(Exception( e.localizedMessage ?: "Unknown Error"))
             }
         }
     }
@@ -89,7 +90,7 @@ class AuthRepositoryImpl @Inject constructor(
                 firebaseAuth.signInWithEmailAndPassword(email, password).await()
                 Result.success("Login successful")
             } catch (e: Exception) {
-                Result.failure(Exception("Login failed"))
+                Result.failure(Exception( e.localizedMessage ?: "Unknown Error"))
             }
         }
     }
@@ -104,7 +105,7 @@ class AuthRepositoryImpl @Inject constructor(
                 user.updatePassword(newPassword).await()
                 Result.success(true)
             } catch (e: Exception) {
-                Result.failure(e)
+                Result.failure(Exception( e.localizedMessage ?: "Unknown Error"))
             }
         }
     }
@@ -115,7 +116,17 @@ class AuthRepositoryImpl @Inject constructor(
                 firebaseAuth.sendPasswordResetEmail(email).await()
                 Result.success(true)
             } catch (e: Exception) {
-                Result.failure(e)
+                Result.failure(Exception( e.localizedMessage ?: "Unknown Error"))
+            }
+        }
+    }
+    override suspend fun signOut(): Result<String> {
+        return withContext(Dispatchers.Default) {
+            try {
+                firebaseAuth.signOut()
+                Result.success("Sign out successful")
+            } catch (e: Exception) {
+                Result.failure(Exception("Sign out failed: ${e.message}"))
             }
         }
     }

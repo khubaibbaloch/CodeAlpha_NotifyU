@@ -1,4 +1,4 @@
-package com.notifyu.app.presentation.screens.auth.components
+package com.notifyu.app.presentation.screens.components
 
 
 import androidx.compose.foundation.layout.fillMaxWidth

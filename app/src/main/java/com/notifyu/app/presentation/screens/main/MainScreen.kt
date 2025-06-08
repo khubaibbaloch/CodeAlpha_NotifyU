@@ -46,36 +46,41 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
+import androidx.navigation.NavController
 import com.notifyu.app.data.model.Organization
-import com.notifyu.app.data.model.SelectedScreen
+import com.notifyu.app.presentation.navigation.navgraph.auth.AuthScreenRoutes
 import com.notifyu.app.presentation.navigation.navgraph.setting.SettingScreenRoutes
 import com.notifyu.app.presentation.screens.main.components.JoinCreateOrgBottomSheet
 import com.notifyu.app.presentation.screens.main.components.SettingScreenTopBar
+import com.notifyu.app.presentation.screens.main.components.getAvatarList
 import com.notifyu.app.presentation.theme.SurfaceColor
 import com.notifyu.app.presentation.viewmodel.MainViewModel
+import com.notifyu.app.presentation.viewmodel.states.AuthNavEvent
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MainScreen(navController: NavHostController, mainViewModel: MainViewModel) {
+fun MainScreen(navController: NavHostController, mainViewModel: MainViewModel,startDestination: String) {
 
+    // AFTER MVVM
     val context = LocalContext.current
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
 
-    val isOrganizationOwned = remember { mutableStateOf(false) }
-    val isOrganizationJoined = remember { mutableStateOf(false) }
+    var isMenuExpanded by remember { mutableStateOf(false) }
+    var showBottomSheet by remember { mutableStateOf(false) }
 
+
+    val currentUser by mainViewModel.currentUser.collectAsState()
+    val navEvent by mainViewModel.navigation.collectAsState()
+    val organizations by mainViewModel.organizationsOwned.collectAsState()
+    val organizationId by mainViewModel.onOrganizationsClick.collectAsState()
+    val organizationsMemberOf by mainViewModel.organizationsMemberOf.collectAsState()
     val currentBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = currentBackStackEntry?.destination?.route
 
-    var showBottomSheet by remember { mutableStateOf(false) }
 
-    val organizations by mainViewModel.organizationsOwned.collectAsState()
-    val organizationId by mainViewModel.onOrganizationsClick.collectAsState()
 
-    val organizationsMemberOf by mainViewModel.organizationsMemberOf.collectAsState()
-    val currentUser = mainViewModel.auth.currentUser
     val selectedOrganization = remember(organizations, organizationsMemberOf, organizationId) {
         organizations.find { it.id == organizationId }
             ?: organizationsMemberOf.find { it.id == organizationId }
@@ -83,63 +88,9 @@ fun MainScreen(navController: NavHostController, mainViewModel: MainViewModel) {
     val isOwner = remember(selectedOrganization, currentUser) {
         selectedOrganization?.owner == currentUser?.uid
     }
-    var isMenuExpanded by remember { mutableStateOf(false) }
 
-    val avatarList = listOf(
-        com.notifyu.app.R.drawable.avatar_index_0,
-        com.notifyu.app.R.drawable.avatar_index_1,
-        com.notifyu.app.R.drawable.avatar_index_2,
-        com.notifyu.app.R.drawable.avatar_index_3,
-        com.notifyu.app.R.drawable.avatar_index_4,
-        com.notifyu.app.R.drawable.avatar_index_5,
-        com.notifyu.app.R.drawable.avatar_index_6,
-        com.notifyu.app.R.drawable.avatar_index_7,
-        com.notifyu.app.R.drawable.avatar_index_8,
-        com.notifyu.app.R.drawable.avatar_index_9,
-    )
-    LaunchedEffect(Unit) {
-//        mainViewModel.fetchSelectedScreenForCurrentUser { selectedScreen ->
-//            when (selectedScreen) {
-//                "owned" -> {
-//                    isOrganizationOwned.value = true
-//                    isOrganizationJoined.value = false
-//                }
-//
-//                "joined" -> {
-//                    isOrganizationJoined.value = true
-//                    isOrganizationOwned.value = false
-//                }
-//
-//                "none" -> {
-//
-//                }
-//            }
-//        }
 
-        mainViewModel.authFetchSelectedScreenForCurrentUser { selectedScreen ->
-            when (selectedScreen) {
-                "owned" -> {
-                    isOrganizationOwned.value = true
-                    isOrganizationJoined.value = false
-                }
-
-                "joined" -> {
-                    isOrganizationJoined.value = true
-                    isOrganizationOwned.value = false
-                }
-
-                "none" -> {
-
-                }
-            }
-        }
-    }
-
-//    BackHandler(enabled = drawerState.isOpen) {
-//        scope.launch {
-//            drawerState.close()
-//        }
-//    }
+    val avatarList = getAvatarList()
 
 
     ModalNavigationDrawer(
@@ -162,7 +113,7 @@ fun MainScreen(navController: NavHostController, mainViewModel: MainViewModel) {
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Text(
-                        text = "${mainViewModel.auth.currentUser?.email}",
+                        text = "${currentUser?.email}",
                         fontSize = 14.sp,
                         fontWeight = FontWeight.W300
                     )
@@ -172,10 +123,13 @@ fun MainScreen(navController: NavHostController, mainViewModel: MainViewModel) {
                         modifier = Modifier
                             .size(20.dp)
                             .clickable {
-                                navController.navigate(
-                                    SettingScreenRoutes.SettingScreen.route
+                                scope.launch {
+                                    drawerState.close()
+                                    navController.navigate(
+                                        SettingScreenRoutes.SettingScreen.route
+                                    )
+                                }
 
-                                )
                             }
                     )
                 }
@@ -197,21 +151,7 @@ fun MainScreen(navController: NavHostController, mainViewModel: MainViewModel) {
 
                 OrganizationOwned(
                     organizations = organizations,
-                    isOrganizationOwned = isOrganizationOwned.value,
                     avatarList = avatarList,
-                    onOwnedClick = {
-                        scope.launch {
-                            drawerState.close()
-//                            mainViewModel.updateSelectedScreen(
-//                                mainViewModel.auth.currentUser?.uid ?: "", SelectedScreen.Owned
-//                            )
-                            mainViewModel.authUpdateSelectedScreen(
-                                mainViewModel.auth.currentUser?.uid ?: "", SelectedScreen.Owned
-                            )
-                            navController.navigate(MainScreenRoutes.OrganizationOwnedScreen.route)
-                        }
-
-                    },
                     onOrganizationOwnedClick = { organization ->
                         scope.launch {
                             drawerState.close()
@@ -219,25 +159,14 @@ fun MainScreen(navController: NavHostController, mainViewModel: MainViewModel) {
                             navController.navigate(MainScreenRoutes.ChatScreen.route)
                         }
 
-                    })
+                    }
+                )
+
                 Spacer(modifier = Modifier.padding(vertical = 8.dp))
+
                 OrganizationJoined(
                     avatarList = avatarList,
                     organizationsMemberOf = organizationsMemberOf,
-                    isOrganizationJoined = isOrganizationJoined.value,
-                    onJoined = {
-                        scope.launch {
-                            drawerState.close()
-//                            mainViewModel.updateSelectedScreen(
-//                                mainViewModel.auth.currentUser?.uid ?: "", SelectedScreen.Joined
-//                            )
-                            mainViewModel.authUpdateSelectedScreen(
-                                mainViewModel.auth.currentUser?.uid ?: "", SelectedScreen.Joined
-                            )
-                            navController.navigate(MainScreenRoutes.OrganizationJoinedScreen.route)
-                        }
-
-                    },
                     onOrganizationJoinedClicked = { organization ->
                         scope.launch {
                             drawerState.close()
@@ -290,16 +219,8 @@ fun MainScreen(navController: NavHostController, mainViewModel: MainViewModel) {
                             onLeaveClick = {
                                 isMenuExpanded = false
                                 if (!isOwner) {
-//                                    mainViewModel.removeMemberFromOrganization(
-//                                        mainViewModel.auth.currentUser?.uid ?: ""
-//                                    ) { success, message ->
-//                                        Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
-//                                        if (success) {
-//                                            navController.popBackStack()
-//                                        }
-//                                    }
                                     mainViewModel.authRemoveMemberFromOrganization(
-                                        mainViewModel.auth.currentUser?.uid ?: ""
+                                        currentUser?.uid ?: ""
                                     ) { success, message ->
                                         Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
                                         if (success) {
@@ -312,27 +233,13 @@ fun MainScreen(navController: NavHostController, mainViewModel: MainViewModel) {
                         )
                     }
 
-                    MainScreenRoutes.OrganizationOwnedScreen.route -> {
-                        MainScreenTopBar(
-                            title = if (isOrganizationJoined.value) "Joined" else "Owned",
-                            onNavigationClick = {
-                                scope.launch { drawerState.open() }
-                            })
-                    }
-
-                    MainScreenRoutes.OrganizationJoinedScreen.route -> {
-                        MainScreenTopBar(
-                            title = if (isOrganizationOwned.value) "Owned" else "Joined",
-                            onNavigationClick = { scope.launch { drawerState.open() } })
-                    }
-
                     MainScreenRoutes.HomeScreen.route, MainScreenRoutes.CreateJoinOrgScreen.route -> {
                         MainScreenTopBar(
                             title = "Notifyu",
                             onNavigationClick = { scope.launch { drawerState.open() } })
                     }
 
-                    SettingScreenRoutes.SettingScreen.route-> {
+                    SettingScreenRoutes.SettingScreen.route -> {
                         SettingScreenTopBar(
                             title = "Setting",
                             onNavigationClick = { navController.popBackStack() })
@@ -349,12 +256,26 @@ fun MainScreen(navController: NavHostController, mainViewModel: MainViewModel) {
                             title = "About Notifyu",
                             onNavigationClick = { navController.popBackStack() })
                     }
+
+                    AuthScreenRoutes.LoginScreen.route,
+                    AuthScreenRoutes.SignupScreen.route,
+                    AuthScreenRoutes.ResetPasswordScreen.route,
+                    AuthScreenRoutes.VerifyEmailScreen.route ->{}
+                    else -> {
+                        MainScreenTopBar(
+                            title = "Notifyu",
+                            onNavigationClick = { scope.launch { drawerState.open() } })
+                    }
                 }
             },
             containerColor = Color.White
         ) { innerPadding ->
             Column(modifier = Modifier.padding(innerPadding)) {
-                RootNavHost(navHostController = navController, mainViewModel = mainViewModel)
+                RootNavHost(
+                    navHostController = navController,
+                    mainViewModel = mainViewModel,
+                    startDestination = startDestination
+                )
             }
         }
     }
@@ -365,8 +286,6 @@ fun MainScreen(navController: NavHostController, mainViewModel: MainViewModel) {
 fun OrganizationOwned(
     organizations: List<Organization>,
     avatarList: List<Int>,
-    isOrganizationOwned: Boolean,
-    onOwnedClick: () -> Unit,
     onOrganizationOwnedClick: (Organization) -> Unit,
 ) {
     LazyColumn(modifier = Modifier.fillMaxWidth()) {
@@ -374,9 +293,7 @@ fun OrganizationOwned(
             Column(
                 modifier = Modifier
                     .height(30.dp)
-                    .fillMaxWidth()
-                    .background(if (isOrganizationOwned) Color.Gray.copy(0.2f) else Color.Transparent)
-                    .clickable { onOwnedClick() },
+                    .fillMaxWidth(),
                 verticalArrangement = Arrangement.Center
             ) {
                 Text(
@@ -420,8 +337,6 @@ fun OrganizationOwned(
 fun OrganizationJoined(
     avatarList: List<Int>,
     organizationsMemberOf: List<Organization>,
-    isOrganizationJoined: Boolean,
-    onJoined: () -> Unit,
     onOrganizationJoinedClicked: (Organization) -> Unit,
 ) {
     LazyColumn(modifier = Modifier.fillMaxWidth()) {
@@ -429,9 +344,7 @@ fun OrganizationJoined(
             Column(
                 modifier = Modifier
                     .height(30.dp)
-                    .fillMaxWidth()
-                    .background(if (isOrganizationJoined) Color.Gray.copy(0.2f) else Color.Transparent)
-                    .clickable { onJoined() },
+                    .fillMaxWidth(),
                 verticalArrangement = Arrangement.Center
             ) {
                 Text(
@@ -448,7 +361,8 @@ fun OrganizationJoined(
             Row(
                 modifier = Modifier
                     .padding(start = 0.dp)
-                    .clickable { onOrganizationJoinedClicked(organizations) }) {
+                    .clickable { onOrganizationJoinedClicked(organizations) }
+            ) {
 
                 Image(
                     painter = painterResource(avatarList[organizations.avatarIndex]),
@@ -465,5 +379,6 @@ fun OrganizationJoined(
     }
 
 }
+
 
 

@@ -1,6 +1,5 @@
 package com.notifyu.app.presentation.screens.auth
 
-import android.util.Patterns
 import android.widget.Toast
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -10,20 +9,14 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 import com.notifyu.app.presentation.screens.auth.components.LottieAnimations
@@ -32,17 +25,13 @@ import com.notifyu.app.presentation.theme.PrimaryColor
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.notifyu.app.R
 import com.notifyu.app.presentation.navigation.navgraph.auth.AuthScreenRoutes
 import com.notifyu.app.presentation.navigation.navgraph.main.MainScreenRoutes
-import com.notifyu.app.presentation.screens.auth.components.AsyncProgressDialog
-import com.notifyu.app.presentation.screens.auth.components.ValidatedTextField
+import com.notifyu.app.presentation.screens.components.AsyncProgressDialog
+import com.notifyu.app.presentation.screens.components.ValidatedTextField
 import com.notifyu.app.presentation.viewmodel.MainViewModel
 import com.notifyu.app.presentation.viewmodel.states.AuthNavEvent
 import com.notifyu.app.presentation.viewmodel.states.UiState
@@ -68,30 +57,32 @@ fun SignupScreen(navController: NavController, mainViewModel: MainViewModel) {
     val confirmPasswordVisible = remember { mutableStateOf(false) }
 
     //  UI STATES
-    val signingState by mainViewModel.isSigning.collectAsState()
+    val signingState by mainViewModel.signingState.collectAsState()
     val navEvent by mainViewModel.navigation.collectAsState()
-    val uiMessage by mainViewModel.uiMessage.collectAsState()
+
 
     LaunchedEffect(navEvent) {
         when (navEvent) {
             AuthNavEvent.ToHome -> {
                 navController.navigate(MainScreenRoutes.HomeScreen.route)
                 mainViewModel.resetNavigation()
+
             }
             AuthNavEvent.ToVerifyEmail -> {
                 navController.navigate(AuthScreenRoutes.VerifyEmailScreen.route)
                 mainViewModel.resetNavigation()
+
             }
             else -> {}
         }
     }
-
-    LaunchedEffect(uiMessage) {
-        if (uiMessage.isNotEmpty()) {
-            Toast.makeText(context, uiMessage, Toast.LENGTH_SHORT).show()
-            mainViewModel.clearUiMessage()
-        }
-    }
+//
+//    LaunchedEffect(uiMessage) {
+//        if (uiMessage.isNotEmpty()) {
+//            Toast.makeText(context, uiMessage, Toast.LENGTH_SHORT).show()
+//            mainViewModel.clearUiMessage()
+//        }
+//    }
 
 
 

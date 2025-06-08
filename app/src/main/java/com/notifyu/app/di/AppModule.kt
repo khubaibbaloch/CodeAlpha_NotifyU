@@ -15,8 +15,10 @@ import com.notifyu.app.domain.repository.UserRepository
 import com.notifyu.app.domain.usecase.auth.AuthUseCases
 import com.notifyu.app.domain.usecase.auth.CheckEmailVerificationUseCase
 import com.notifyu.app.domain.usecase.auth.LoginWithEmailUserCase
+import com.notifyu.app.domain.usecase.auth.ObserveAuthStateUseCase
 import com.notifyu.app.domain.usecase.auth.SendEmailVerificationUseCase
 import com.notifyu.app.domain.usecase.auth.SendPasswordResetEmailUseCase
+import com.notifyu.app.domain.usecase.auth.SignOutUseCase
 import com.notifyu.app.domain.usecase.auth.SignUpUseCase
 import com.notifyu.app.domain.usecase.auth.UpdatePasswordUseCase
 import com.notifyu.app.domain.usecase.notification.NotificationUseCase
@@ -25,7 +27,6 @@ import com.notifyu.app.domain.usecase.organization.AddOrganizationUseCase
 import com.notifyu.app.domain.usecase.organization.FetchMemberOrganizationsUseCase
 import com.notifyu.app.domain.usecase.organization.FetchMessagesForOrganizationUseCase
 import com.notifyu.app.domain.usecase.organization.FetchOwnedOrganizationsUseCase
-import com.notifyu.app.domain.usecase.user.FetchSelectedScreenForCurrentUserUseCase
 import com.notifyu.app.domain.usecase.organization.FetchUsersByIdsUseCase
 import com.notifyu.app.domain.usecase.organization.JoinOrganizationByNameAndCodeUseCase
 import com.notifyu.app.domain.usecase.organization.OrganizationUseCase
@@ -34,7 +35,7 @@ import com.notifyu.app.domain.usecase.notification.SendFcmPushNotificationUseCas
 import com.notifyu.app.domain.usecase.notification.SyncFcmTokenIfChangedUseCase
 import com.notifyu.app.domain.usecase.organization.UpdateOrganizationAvatarIndexUseCase
 import com.notifyu.app.domain.usecase.user.CreateUserUseCase
-import com.notifyu.app.domain.usecase.user.UpdateSelectedScreenUseCase
+import com.notifyu.app.domain.usecase.user.GetCurrentUserUseCase
 import com.notifyu.app.domain.usecase.user.UserUseCase
 import dagger.Module
 import dagger.Provides
@@ -73,7 +74,9 @@ object AppModule {
             sendEmailVerification = SendEmailVerificationUseCase(repository),
             checkEmailVerification = CheckEmailVerificationUseCase(repository),
             sendPasswordReset = SendPasswordResetEmailUseCase(repository),
-            updatePassword = UpdatePasswordUseCase(repository)
+            updatePassword = UpdatePasswordUseCase(repository),
+            signOutUseCase = SignOutUseCase(repository),
+            authStateUseCase = ObserveAuthStateUseCase(repository)
         )
     }
 
@@ -114,9 +117,8 @@ object AppModule {
     @Singleton
     fun provideUserUseCase(repository: UserRepository): UserUseCase {
         return UserUseCase(
+            currentUser = GetCurrentUserUseCase(repository),
             createUser = CreateUserUseCase(repository),
-            setSelectedScreen = UpdateSelectedScreenUseCase(repository),
-            getSelectedScreen = FetchSelectedScreenForCurrentUserUseCase(repository),
         )
     }
 

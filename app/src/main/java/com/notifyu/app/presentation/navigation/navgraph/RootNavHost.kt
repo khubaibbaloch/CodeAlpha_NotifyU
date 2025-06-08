@@ -1,6 +1,7 @@
 package com.notifyu.app.presentation.navigation.navgraph
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import com.notifyu.app.presentation.navigation.navgraph.auth.AuthScreenRoutes
@@ -8,12 +9,17 @@ import com.notifyu.app.presentation.navigation.navgraph.auth.authNavGraph
 import com.notifyu.app.presentation.navigation.navgraph.main.mainNavGraph
 import com.notifyu.app.presentation.navigation.navgraph.setting.settingNavGraph
 import com.notifyu.app.presentation.viewmodel.MainViewModel
+import androidx.compose.runtime.*
+import com.notifyu.app.presentation.navigation.navgraph.main.MainScreenRoutes
 
 @Composable
-fun RootNavHost(navHostController: NavHostController, mainViewModel: MainViewModel) {
+fun RootNavHost(navHostController: NavHostController, mainViewModel: MainViewModel,startDestination: String) {
+    //val currentUser by mainViewModel.currentUser.collectAsState()
+   // val startDestination =  if (currentUser != null && currentUser!!.isEmailVerified) MainScreenRoutes.MainScreenRoot.route else AuthScreenRoutes.AuthScreenRoot.route
+
     NavHost(
         navController = navHostController,
-        startDestination = AuthScreenRoutes.AuthScreenRoot.route,
+        startDestination = startDestination,
         route = "Root"
     ) {
         authNavGraph(navController = navHostController, mainViewModel = mainViewModel)

@@ -7,4 +7,6 @@ data class AuthUseCases(
     val checkEmailVerification: CheckEmailVerificationUseCase,
     val sendPasswordReset: SendPasswordResetEmailUseCase,
     val updatePassword: UpdatePasswordUseCase,
+    val signOutUseCase: SignOutUseCase,
+    val authStateUseCase: ObserveAuthStateUseCase
 )

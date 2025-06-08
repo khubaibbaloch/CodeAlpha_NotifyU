@@ -38,6 +38,7 @@ import com.notifyu.app.presentation.navigation.navgraph.setting.SettingScreenRou
 fun SettingScreen(navController: NavController, mainViewModel: MainViewModel) {
     var showLogoutDialog by remember { mutableStateOf(false) }
 
+
     if (showLogoutDialog) {
         AlertDialog(
             onDismissRequest = { showLogoutDialog = false },
@@ -46,10 +47,11 @@ fun SettingScreen(navController: NavController, mainViewModel: MainViewModel) {
             confirmButton = {
                 TextButton(onClick = {
                     showLogoutDialog = false
-                    mainViewModel.auth.signOut()
+                    mainViewModel.signOut()
                     navController.navigate(AuthScreenRoutes.SignupScreen.route) {
                         popUpTo(0) { inclusive = true }
                     }
+                    mainViewModel.resetNavigation()
                 }) {
                     Text("Yes")
                 }

@@ -9,53 +9,59 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.notifyu.app.R
 import com.notifyu.app.presentation.navigation.navgraph.auth.AuthScreenRoutes
+import com.notifyu.app.presentation.screens.components.AsyncProgressDialog
 import com.notifyu.app.presentation.screens.auth.components.LottieAnimations
+import com.notifyu.app.presentation.screens.components.ValidatedTextField
 import com.notifyu.app.presentation.theme.BackgroundColor
 import com.notifyu.app.presentation.theme.PrimaryColor
 import com.notifyu.app.presentation.viewmodel.MainViewModel
+import com.notifyu.app.presentation.viewmodel.states.AuthNavEvent
+import com.notifyu.app.presentation.viewmodel.states.UiState
 
 @Composable
 fun ResetPasswordScreen(navController: NavController, mainViewModel: MainViewModel) {
 
+    // AFTER MVVM
     val context = LocalContext.current
 
+    // EMAIL VALIDATION
     val email = remember { mutableStateOf("") }
-    val password = remember { mutableStateOf("") }
-    val confirmPassword = remember { mutableStateOf("") }
+    val emailError by mainViewModel.emailValidationError.collectAsState()
 
-    // Password visibility toggles
-    val passwordVisible = remember { mutableStateOf(false) }
-    val confirmPasswordVisible = remember { mutableStateOf(false) }
+    //  UI STATES
+    val resetPasswordState by mainViewModel.resetPasswordState.collectAsState()
+    val navEvent by mainViewModel.navigation.collectAsState()
 
-    val currentUser by remember { mutableStateOf(mainViewModel.auth.currentUser) }
+    LaunchedEffect(navEvent) {
+        when (navEvent) {
+            AuthNavEvent.ToLogin -> {
+                navController.navigate(AuthScreenRoutes.LoginScreen.route)
+                mainViewModel.resetNavigation()
+            }
+            else -> {}
+        }
+    }
 
+    // BEFORE MVVM
 
     Scaffold(containerColor = BackgroundColor) { innerPadding ->
         Column(
@@ -70,70 +76,17 @@ fun ResetPasswordScreen(navController: NavController, mainViewModel: MainViewMod
         ) {
             Text("Notifyu", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = PrimaryColor)
             LottieAnimations(modifier = Modifier.weight(1f), R.raw.reset_password)
-            OutlinedTextField(
-                value = email.value,
-                onValueChange = {
-                    email.value = it
-                },
-                label = { Text("Email") },
-                textStyle = TextStyle(color = Color.Black),
-                modifier = Modifier.fillMaxWidth(),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedTextColor = Color.Black,
-                    unfocusedTextColor = Color.Black,
-                    errorTextColor = Color.Red,  // Set error text color to red
-
-                    cursorColor = Color.Black,
-                    errorCursorColor = Color.Red,
-
-                    focusedBorderColor = Color.Black,
-                    unfocusedBorderColor = Color.Gray,
-                    errorBorderColor = Color.Red,
-
-                    focusedLeadingIconColor = Color.Black,
-                    unfocusedLeadingIconColor = Color.Gray,
-                    errorLeadingIconColor = Color.Red,
-
-                    focusedTrailingIconColor = Color.Black,
-                    unfocusedTrailingIconColor = Color.Gray,
-                    disabledTrailingIconColor = Color.Gray,
-                    errorTrailingIconColor = Color.Red,
-
-                    focusedLabelColor = Color.Black,
-                    unfocusedLabelColor = Color.Gray,
-                    disabledLabelColor = Color.Gray,
-                    errorLabelColor = Color.Red,
-
-                    )
+            ValidatedTextField(
+                label = "Email",
+                value = email,
+                isError = emailError,
+                errorMessage = "Please enter a valid email",
+                validator = { mainViewModel.validateEmail(it) }
             )
 
             Button(
                 onClick = {
-                    if (email.value.isEmpty()) {
-                        Toast.makeText(context, "Please fill all fields", Toast.LENGTH_SHORT).show()
-                        return@Button
-                    }
-
-//                    mainViewModel.updatePassword(password.value) { success, message ->
-//                        Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
-//                        if (success) {
-//                            Toast.makeText(context, "Passwords updated", Toast.LENGTH_SHORT).show()
-//                            navController.navigate(AuthScreenRoutes.LoginScreen.route)
-//                        }
-//                    }
-                    //  THIS WHEN NEED WHEN YOU ARE LOGIN
-//                    mainViewModel.authUpdatePassword(password.value) { success, message ->
-//                        Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
-//                        if (success) {
-//                            navController.navigate(AuthScreenRoutes.LoginScreen.route)
-//                        }
-//                    }
-                    mainViewModel.authSendPasswordResetEmail(email = email.value, onResult = { success,message ->
-                        Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
-                        if (success){
-                            navController.navigate(AuthScreenRoutes.LoginScreen.route)
-                        }
-                    })
+                    mainViewModel.onResetPasswordClicked(email.value)
                 },
                 shape = RoundedCornerShape(4.dp),
                 modifier = Modifier.fillMaxWidth()
@@ -157,6 +110,28 @@ fun ResetPasswordScreen(navController: NavController, mainViewModel: MainViewMod
                 )
             }
 
+            when (resetPasswordState) {
+                is UiState.Loading -> {
+                    AsyncProgressDialog(
+                        showDialog = true,
+                        message = "Sending password reset email..."
+                    )
+                }
+
+                is UiState.Success -> {
+                    Toast.makeText(context, "Reset email sent successfully!", Toast.LENGTH_LONG).show()
+                }
+
+                is UiState.Error -> {
+                    val errorMessage = (resetPasswordState as UiState.Error).message
+                    Toast.makeText(context, errorMessage, Toast.LENGTH_SHORT).show()
+
+                }
+
+                is UiState.Idle -> {
+
+                }
+            }
         }
     }
 }
