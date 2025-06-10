@@ -1,5 +1,6 @@
 package com.notifyu.app.presentation.screens.chat.components
 
+import android.util.MutableBoolean
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -15,10 +16,13 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.MutableState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.notifyu.app.presentation.navigation.navgraph.auth.AuthScreenRoutes
+import com.notifyu.app.presentation.screens.components.ConfirmationDialog
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -26,10 +30,10 @@ fun EventChatScreenTopBar(
     title: String,
     onNavigationClick: () -> Unit,
     isOwner: Boolean,
-    isDropDownMenuClicked: Boolean,
-    onMoreVertClick: () -> Unit,
-    onDismissRequest: () -> Unit,
+    isDropDownMenuClicked: MutableState<Boolean>,
     onLeaveClick: () -> Unit,
+    showLogoutDialog: MutableState<Boolean>,
+    onConfirm: () -> Unit
 ) {
     TopAppBar(
         navigationIcon = {
@@ -52,7 +56,7 @@ fun EventChatScreenTopBar(
         },
         actions = {
             if (!isOwner){
-                IconButton(onClick = onMoreVertClick) {
+                IconButton(onClick = {isDropDownMenuClicked.value = true}) {
                     Icon(
                         imageVector = Icons.Default.MoreVert,
                         contentDescription = "More options",
@@ -61,8 +65,8 @@ fun EventChatScreenTopBar(
                     )
                 }
                 DropdownMenu(
-                    expanded = isDropDownMenuClicked,
-                    onDismissRequest = onDismissRequest,
+                    expanded = isDropDownMenuClicked.value,
+                    onDismissRequest = {isDropDownMenuClicked.value = false},
                     modifier = Modifier.background(Color.White)
                 ) {
                     DropdownMenuItem(
@@ -76,6 +80,14 @@ fun EventChatScreenTopBar(
         colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.White)
     )
 
-    // Dropdown Menu
+    ConfirmationDialog(
+        title = "Leaving Organization",
+        text = "Are you sure you want to leave this organization?",
+        showDialog = showLogoutDialog.value,
+        onDismiss = { showLogoutDialog.value = false },
+        onConfirm = {
+            showLogoutDialog.value = false
+            onConfirm()
+        })
 
 }

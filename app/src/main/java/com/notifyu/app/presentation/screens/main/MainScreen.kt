@@ -1,5 +1,6 @@
 package com.notifyu.app.presentation.screens.main
 
+import android.annotation.SuppressLint
 import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -8,19 +9,26 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -50,6 +58,7 @@ import androidx.navigation.NavController
 import com.notifyu.app.data.model.Organization
 import com.notifyu.app.presentation.navigation.navgraph.auth.AuthScreenRoutes
 import com.notifyu.app.presentation.navigation.navgraph.setting.SettingScreenRoutes
+import com.notifyu.app.presentation.screens.components.ConfirmationDialog
 import com.notifyu.app.presentation.screens.main.components.JoinCreateOrgBottomSheet
 import com.notifyu.app.presentation.screens.main.components.SettingScreenTopBar
 import com.notifyu.app.presentation.screens.main.components.getAvatarList
@@ -58,16 +67,22 @@ import com.notifyu.app.presentation.viewmodel.MainViewModel
 import com.notifyu.app.presentation.viewmodel.states.AuthNavEvent
 import kotlinx.coroutines.launch
 
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MainScreen(navController: NavHostController, mainViewModel: MainViewModel,startDestination: String) {
+fun MainScreen(
+    navController: NavHostController,
+    mainViewModel: MainViewModel,
+    startDestination: String,
+) {
 
     // AFTER MVVM
     val context = LocalContext.current
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
 
-    var isMenuExpanded by remember { mutableStateOf(false) }
+    var isMenuExpanded = remember { mutableStateOf(false) }
+    var showLogoutDialog = remember { mutableStateOf(false) }
     var showBottomSheet by remember { mutableStateOf(false) }
 
 
@@ -78,7 +93,6 @@ fun MainScreen(navController: NavHostController, mainViewModel: MainViewModel,st
     val organizationsMemberOf by mainViewModel.organizationsMemberOf.collectAsState()
     val currentBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = currentBackStackEntry?.destination?.route
-
 
 
     val selectedOrganization = remember(organizations, organizationsMemberOf, organizationId) {
@@ -94,7 +108,9 @@ fun MainScreen(navController: NavHostController, mainViewModel: MainViewModel,st
 
 
     ModalNavigationDrawer(
-        modifier = Modifier.statusBarsPadding(),
+        modifier = Modifier
+            .statusBarsPadding()
+            .windowInsetsPadding(WindowInsets.navigationBars),
         drawerState = drawerState,
         gesturesEnabled = drawerState.isOpen,
         drawerContent = {
@@ -104,6 +120,7 @@ fun MainScreen(navController: NavHostController, mainViewModel: MainViewModel,st
                     .fillMaxWidth(0.8f)
                     .background(Color.White)
                     .padding(8.dp)
+
             ) {
                 Row(
                     modifier = Modifier
@@ -117,27 +134,35 @@ fun MainScreen(navController: NavHostController, mainViewModel: MainViewModel,st
                         fontSize = 14.sp,
                         fontWeight = FontWeight.W300
                     )
-                    Icon(
-                        painter = painterResource(R.drawable.ic_setting),
-                        contentDescription = null,
-                        modifier = Modifier
-                            .size(20.dp)
-                            .clickable {
-                                scope.launch {
-                                    drawerState.close()
-                                    navController.navigate(
-                                        SettingScreenRoutes.SettingScreen.route
-                                    )
-                                }
-
+                    IconButton(
+                        onClick = {
+                            scope.launch {
+                                drawerState.close()
+                                navController.navigate(
+                                    SettingScreenRoutes.SettingScreen.route
+                                )
                             }
-                    )
+                        },
+                        modifier = Modifier
+                            .size(30.dp)
+                    ) {
+                        Icon(
+                            painter = painterResource(R.drawable.ic_setting),
+                            contentDescription = null,
+                            modifier = Modifier
+                                .size(20.dp)
+
+                        )
+                    }
+
                 }
                 Spacer(modifier = Modifier.padding(vertical = 24.dp))
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
+                        .height(30.dp)
                         .clickable { showBottomSheet = true },
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
                     Icon(
                         painter = painterResource(R.drawable.ic_add),
@@ -149,31 +174,33 @@ fun MainScreen(navController: NavHostController, mainViewModel: MainViewModel,st
                 }
                 Spacer(modifier = Modifier.padding(vertical = 24.dp))
 
-                OrganizationOwned(
+                DrawerOrganizationList(
+                    title = "Organization Owned",
                     organizations = organizations,
                     avatarList = avatarList,
-                    onOrganizationOwnedClick = { organization ->
+                    onOrganizationClick = { organization ->
                         scope.launch {
                             drawerState.close()
                             mainViewModel.updateOnOrganizationClick(organization.id)
                             navController.navigate(MainScreenRoutes.ChatScreen.route)
                         }
-
                     }
                 )
 
                 Spacer(modifier = Modifier.padding(vertical = 8.dp))
 
-                OrganizationJoined(
+                DrawerOrganizationList(
+                    title = "Organization Joined",
+                    organizations = organizationsMemberOf,
                     avatarList = avatarList,
-                    organizationsMemberOf = organizationsMemberOf,
-                    onOrganizationJoinedClicked = { organization ->
+                    onOrganizationClick = { organization ->
                         scope.launch {
                             drawerState.close()
                             mainViewModel.updateOnOrganizationClick(organization.id)
                             navController.navigate(MainScreenRoutes.ChatScreen.route)
                         }
-                    })
+                    }
+                )
 
             }
 
@@ -184,7 +211,9 @@ fun MainScreen(navController: NavHostController, mainViewModel: MainViewModel,st
                             showBottomSheet = false
                             drawerState.close()
                             mainViewModel.updateAddOrg(true)
-                            navController.navigate(MainScreenRoutes.CreateJoinOrgScreen.route)
+                            if (currentRoute != MainScreenRoutes.CreateJoinOrgScreen.route){
+                                navController.navigate(MainScreenRoutes.CreateJoinOrgScreen.route)
+                            }
                         }
 
                     },
@@ -193,7 +222,9 @@ fun MainScreen(navController: NavHostController, mainViewModel: MainViewModel,st
                             showBottomSheet = false
                             drawerState.close()
                             mainViewModel.updateAddOrg(false)
-                            navController.navigate(MainScreenRoutes.CreateJoinOrgScreen.route)
+                            if (currentRoute != MainScreenRoutes.CreateJoinOrgScreen.route){
+                                navController.navigate(MainScreenRoutes.CreateJoinOrgScreen.route)
+                            }
                         }
 
                     },
@@ -214,10 +245,13 @@ fun MainScreen(navController: NavHostController, mainViewModel: MainViewModel,st
                             onNavigationClick = { navController.popBackStack() },
                             isOwner = isOwner,
                             isDropDownMenuClicked = isMenuExpanded,
-                            onMoreVertClick = { isMenuExpanded = true },
-                            onDismissRequest = { isMenuExpanded = false },
                             onLeaveClick = {
-                                isMenuExpanded = false
+                                isMenuExpanded.value = false
+                                showLogoutDialog.value = true
+//
+                            },
+                            showLogoutDialog = showLogoutDialog,
+                            onConfirm = {
                                 if (!isOwner) {
                                     mainViewModel.authRemoveMemberFromOrganization(
                                         currentUser?.uid ?: ""
@@ -228,15 +262,38 @@ fun MainScreen(navController: NavHostController, mainViewModel: MainViewModel,st
                                         }
                                     }
                                 }
-
                             }
                         )
                     }
 
-                    MainScreenRoutes.HomeScreen.route, MainScreenRoutes.CreateJoinOrgScreen.route -> {
+                    MainScreenRoutes.HomeScreen.route -> {
                         MainScreenTopBar(
                             title = "Notifyu",
-                            onNavigationClick = { scope.launch { drawerState.open() } })
+                            onNavigationClick = { scope.launch { drawerState.open() } },
+                            hasElevation = false,
+                            isDropDownMenuClicked = isMenuExpanded.value,
+                            onMoreVertClick = { isMenuExpanded.value = true },
+                            onDismissRequest = { isMenuExpanded.value = false },
+                            onLeaveClick = {
+                                isMenuExpanded.value = false
+                                navController.navigate(SettingScreenRoutes.SettingScreen.route)
+                            }
+                        )
+                    }
+
+                    MainScreenRoutes.CreateJoinOrgScreen.route -> {
+                        MainScreenTopBar(
+                            title = "Notifyu",
+                            onNavigationClick = { scope.launch { drawerState.open() } },
+                            hasElevation = true,
+                            isDropDownMenuClicked = isMenuExpanded.value,
+                            onMoreVertClick = { isMenuExpanded.value = true },
+                            onDismissRequest = { isMenuExpanded.value = false },
+                            onLeaveClick = {
+                                isMenuExpanded.value = false
+                                navController.navigate(SettingScreenRoutes.SettingScreen.route)
+                            }
+                        )
                     }
 
                     SettingScreenRoutes.SettingScreen.route -> {
@@ -260,17 +317,32 @@ fun MainScreen(navController: NavHostController, mainViewModel: MainViewModel,st
                     AuthScreenRoutes.LoginScreen.route,
                     AuthScreenRoutes.SignupScreen.route,
                     AuthScreenRoutes.ResetPasswordScreen.route,
-                    AuthScreenRoutes.VerifyEmailScreen.route ->{}
+                    AuthScreenRoutes.VerifyEmailScreen.route,
+                        -> {
+                    }
+
                     else -> {
                         MainScreenTopBar(
                             title = "Notifyu",
-                            onNavigationClick = { scope.launch { drawerState.open() } })
+                            onNavigationClick = { scope.launch { drawerState.open() } },
+                            hasElevation = false,
+                            isDropDownMenuClicked = isMenuExpanded.value,
+                            onMoreVertClick = { isMenuExpanded.value = true },
+                            onDismissRequest = { isMenuExpanded.value = false },
+                            onLeaveClick = {
+                                isMenuExpanded.value = false
+                                navController.navigate(SettingScreenRoutes.SettingScreen.route)
+                            })
                     }
                 }
             },
-            containerColor = Color.White
+            containerColor = Color.White,
         ) { innerPadding ->
-            Column(modifier = Modifier.padding(innerPadding)) {
+            Column(
+                modifier = Modifier
+                    .padding(top = innerPadding.calculateTopPadding())
+                    .windowInsetsPadding(WindowInsets.navigationBars)
+            ) {
                 RootNavHost(
                     navHostController = navController,
                     mainViewModel = mainViewModel,
@@ -380,5 +452,52 @@ fun OrganizationJoined(
 
 }
 
+@Composable
+fun DrawerOrganizationList(
+    title: String,
+    organizations: List<Organization>,
+    avatarList: List<Int>,
+    onOrganizationClick: (Organization) -> Unit,
+) {
+    LazyColumn(modifier = Modifier.fillMaxWidth()) {
+        item {
+            Column(
+                modifier = Modifier
+                    .height(30.dp)
+                    .fillMaxWidth(),
+                verticalArrangement = Arrangement.Center
+            ) {
+                Text(
+                    text = title,
+                    fontSize = 12.sp,
+                    color = Color.Black
+                )
+            }
+        }
 
+        item {
+            Spacer(modifier = Modifier.padding(vertical = 4.dp))
+        }
 
+        items(organizations) { organization ->
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { onOrganizationClick(organization) }
+                    .padding(vertical = 8.dp, horizontal = 4.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Image(
+                    painter = painterResource(avatarList[organization.avatarIndex]),
+                    contentDescription = null,
+                    modifier = Modifier
+                        .size(25.dp)
+                        .clip(CircleShape)
+                        .background(SurfaceColor.copy(0.5f))
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(text = organization.name, fontSize = 14.sp)
+            }
+        }
+    }
+}

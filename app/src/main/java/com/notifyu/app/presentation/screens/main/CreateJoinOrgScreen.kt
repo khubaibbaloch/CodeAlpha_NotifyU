@@ -27,6 +27,7 @@ import com.notifyu.app.presentation.screens.components.AsyncProgressDialog
 import com.notifyu.app.presentation.screens.components.ValidatedTextField
 import com.notifyu.app.presentation.theme.PrimaryColor
 import com.notifyu.app.presentation.viewmodel.states.UiState
+import com.notifyu.app.utils.hideKeyboard
 
 @Composable
 fun CreateJoinOrgScreen(navController: NavController, mainViewModel: MainViewModel) {
@@ -77,7 +78,8 @@ fun CreateJoinOrgScreen(navController: NavController, mainViewModel: MainViewMod
             is UiState.Success -> {
                 val message = (createJoinOrgState as UiState.Success).data
                 Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
-                navController.navigate(MainScreenRoutes.HomeScreen.route)
+               // navController.navigate(MainScreenRoutes.HomeScreen.route)
+                navController.popBackStack()
             }
 
             is UiState.Error -> {

@@ -1,5 +1,7 @@
 package com.notifyu.app.presentation.screens.main
 
+import android.Manifest
+import android.os.Build
 import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -8,11 +10,14 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
@@ -45,40 +50,52 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.TabRowDefaults
 import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.style.TextOverflow
+import com.notifyu.app.presentation.screens.main.components.RequestPermissions
 import com.notifyu.app.presentation.screens.main.components.getAvatarList
 import com.notifyu.app.presentation.theme.PrimaryColor
+import com.notifyu.app.presentation.theme.SurfaceColor
+import com.notifyu.app.utils.formatMessageTimestamp
 
 
 @Composable
 fun HomeScreen(navController: NavController, mainViewModel: MainViewModel) {
-//    val navEvent by mainViewModel.navigation.collectAsState()
-//
-//    // Initial fetch
-//    LaunchedEffect(Unit) {
-//        mainViewModel.authFetchSelectedScreenForCurrentUser()
-//    }
-//
-//    // React to navigation event
-//    LaunchedEffect(navEvent) {
-//        when (navEvent) {
-//            is AuthNavEvent.ToOrganizationOwned -> {
-//                navController.navigate("dummy") { popUpTo(0) }
-//            }
-//
-//            is AuthNavEvent.ToOrganizationJoined -> {
-//                navController.navigate("dummy") { popUpTo(0) }
-//            }
-//
-//            else -> {}
-//        }
-//    }
+    val context = LocalContext.current
+
+    LaunchedEffect(Unit) {
+        mainViewModel.resetNavigation()
+        // hideKeyboard(context)
+    }
 
 
-    var selectedTabIndex by remember { mutableStateOf(0) }
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        RequestPermissions(
+            permissions = listOf(Manifest.permission.POST_NOTIFICATIONS),
+            onAllGranted = {
+                // All permissions granted
+            },
+            onDenied = { denied, permanentlyDenied ->
+//                if (permanentlyDenied.isNotEmpty()) {
+//                    // Show dialog directing user to app settings
+//                } else {
+//                    // Show retry rationale dialog
+//                }
+            }
+        )
+    }
+
+
+    var selectedTabIndex by rememberSaveable { mutableIntStateOf(0) }
     val tabTitles = listOf("Owned", "Joined")
 
-    Column(modifier = Modifier.fillMaxSize()) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(
+            )
+    ) {
         TabRow(
             selectedTabIndex = selectedTabIndex,
             containerColor = Color.White,
@@ -109,6 +126,7 @@ fun HomeScreen(navController: NavController, mainViewModel: MainViewModel) {
             0 -> OwnedOrganizationsTab(navController, mainViewModel)
             1 -> JoinedOrganizationsTab(navController, mainViewModel)
         }
+
     }
 
 }
@@ -116,19 +134,22 @@ fun HomeScreen(navController: NavController, mainViewModel: MainViewModel) {
 @Composable
 fun OwnedOrganizationsTab(navController: NavController, mainViewModel: MainViewModel) {
     val organizationsOwned by mainViewModel.organizationsOwned.collectAsState()
-
-    LaunchedEffect(Unit) {
-        mainViewModel.authFetchOwnedOrganizations()
-    }
-
     val avatarList = getAvatarList()
+
 
     LazyColumn {
         items(organizationsOwned) { org ->
+            val time =
+                org.lastMessage?.timestamp?.takeIf { it > 0L }?.let { formatMessageTimestamp(it) }
+                    ?: ""
+
             OrganizationRow(
                 name = org.name,
+                lastMessage = org.lastMessage?.content ?: "",
+                time = time,
                 avatarIndex = org.avatarIndex,
                 avatarList = avatarList,
+                isSeen = true,
                 onClick = {
                     mainViewModel.updateOnOrganizationClick(org.id)
                     navController.navigate(MainScreenRoutes.ChatScreen.route)
@@ -141,19 +162,29 @@ fun OwnedOrganizationsTab(navController: NavController, mainViewModel: MainViewM
 @Composable
 fun JoinedOrganizationsTab(navController: NavController, mainViewModel: MainViewModel) {
     val organizationsMemberOf by mainViewModel.organizationsMemberOf.collectAsState()
-
-    LaunchedEffect(Unit) {
-        mainViewModel.authFetchMemberOrganizations()
-    }
+    val currentUser by mainViewModel.currentUser.collectAsState()
+//    LaunchedEffect(Unit) {
+//        mainViewModel.authFetchMemberOrganizations()
+//    }
 
     val avatarList = getAvatarList()
 
     LazyColumn {
         items(organizationsMemberOf) { org ->
+            val time = org.lastMessage?.timestamp?.takeIf { it > 0L }
+                ?.let { formatMessageTimestamp(it) } ?: ""
+
+            val isSeen = currentUser?.uid?.let { uid ->
+                org.lastMessage?.seenBy?.contains(uid)
+            } ?: false
+
             OrganizationRow(
                 name = org.name,
+                lastMessage = org.lastMessage?.content ?: "",
+                time = time,
                 avatarIndex = org.avatarIndex,
                 avatarList = avatarList,
+                isSeen = isSeen,
                 onClick = {
                     mainViewModel.updateOnOrganizationClick(org.id)
                     navController.navigate(MainScreenRoutes.ChatScreen.route)
@@ -161,15 +192,25 @@ fun JoinedOrganizationsTab(navController: NavController, mainViewModel: MainView
             )
         }
     }
+
 }
 
 @Composable
 fun OrganizationRow(
     name: String,
+    lastMessage: String,
+    time: String,
     avatarIndex: Int,
     avatarList: List<Int>,
+    isSeen: Boolean,
     onClick: () -> Unit,
 ) {
+    val textColor = if (isSeen) {
+        Color.Black
+    } else {
+        SurfaceColor
+    }
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -183,19 +224,50 @@ fun OrganizationRow(
             modifier = Modifier
                 .size(40.dp)
                 .clip(CircleShape)
-                .background(MaterialTheme.colorScheme.surface.copy(0.5f))
+                .background(SurfaceColor.copy(0.5f))
         )
         Spacer(modifier = Modifier.width(8.dp))
-        Column {
-            Text(text = name, fontSize = 16.sp)
-            Text(
-                text = "Announcement",
-                fontSize = 14.sp,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-            )
+        Column(modifier = Modifier.weight(1f)) {
+            Row {
+                Text(
+                    text = name,
+                    fontSize = 14.sp,
+                    color = Color.Black,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f)
+                )
+                Spacer(Modifier.width(16.dp))
+                Text(text = time, fontSize = 14.sp,color = textColor,)
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Announcement: $lastMessage",
+                    fontSize = 14.sp,
+                    color = Color.Black,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f)
+                )
+                Spacer(Modifier.width(16.dp))
+                if (!isSeen){
+                    Box(
+                        modifier = Modifier
+                            .size(10.dp)
+                            .background(PrimaryColor, CircleShape)
+                    )
+                }
+
+            }
+
+
+
         }
-        Spacer(modifier = Modifier.weight(1f))
-        Text(text = "Set", fontSize = 14.sp)
+
     }
+
 }
 

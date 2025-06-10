@@ -3,16 +3,12 @@ package com.notifyu.app.presentation.viewmodel
 import android.content.Context
 import android.util.Log
 import android.util.Patterns
-import androidx.compose.runtime.State
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
-import com.google.firebase.Firebase
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
-import com.google.firebase.firestore.FirebaseFirestore
-import com.google.firebase.firestore.firestore
 import com.notifyu.app.data.model.Message
 import com.notifyu.app.data.model.Organization
 import com.notifyu.app.data.model.User
@@ -147,7 +143,10 @@ class MainViewModel @Inject constructor(
                     authFetchMemberOrganizations()
                     authSyncFcmTokenIfChanged()
                     checkUserAndNavigate(it)
+                    authFetchOwnedOrganizations()
+                    authFetchMemberOrganizations()
                 }
+
             }
         }
     }
@@ -462,6 +461,7 @@ class MainViewModel @Inject constructor(
         }
     }
 
+    // Not In Use
     fun authFetchMessagesForOrganization(orgId: String) {
         organizationUseCase.getOrgMessages(orgId = orgId, onUpdate = {
             _onOrgMessages.value = it
@@ -520,7 +520,6 @@ class MainViewModel @Inject constructor(
         onResult: (Boolean, String) -> Unit,
     ) {
         viewModelScope.launch {
-
             val result = organizationUseCase.updateAvatarIndex(
                 orgId = orgId,
                 newAvatarIndex = newAvatarIndex
@@ -541,6 +540,7 @@ class MainViewModel @Inject constructor(
     ) {
         val selected = organizationOwned.find { it.id == organizationId }
             ?: organizationsMemberOf.find { it.id == organizationId }
+
         _selectedOrganization.value = selected
     }
 
@@ -550,6 +550,11 @@ class MainViewModel @Inject constructor(
         currentUid: String?,
         isOwner: Boolean,
     ) {
+        _orgUsers.value = emptyList()
+        _orgEmails.value = emptyList()
+        _orgFcmTokens.value = emptyList()
+        _orgUids.value = emptyList()
+
         if (memberIds.isEmpty()) {
             _orgUsers.value = emptyList()
             return
@@ -564,15 +569,31 @@ class MainViewModel @Inject constructor(
 
             val uids = fetchedUsers.map { it.uid }
             if (currentUid != null && !isOwner && currentUid !in uids) {
+                Log.d(
+                    "navBack",
+                    "fetchAndCheckOrgUsers: Owner ${isOwner} and ${currentUid !in uids} "
+                )
                 _navigation.value = AuthNavEvent.ToHome
             }
         }
     }
 
-
-    fun updateIsOwner(currentUserUid: String, selectedOrg: Organization?) {
-        _isOwner.value = selectedOrg?.owner == currentUserUid
+    fun updateSeenByForLastMessage(
+        currentOrgId: String,
+        currentUserUid: String,
+    ) {
+        viewModelScope.launch {
+            val result = organizationUseCase.updateSeenByForLastMessage(
+                currentOrgId = currentOrgId,
+                currentUserUid = currentUserUid
+            )
+        }
     }
+
+
+//    fun updateIsOwner(currentUserUid: String, selectedOrg: Organization?) {
+//        _isOwner.value = selectedOrg?.owner == currentUserUid
+//    }
 
 
 }

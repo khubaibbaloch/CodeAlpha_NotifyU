@@ -1,8 +1,5 @@
 package com.notifyu.app.domain.usecase.organization
 
-import com.notifyu.app.domain.usecase.notification.SendFcmPushNotificationUseCase
-import com.notifyu.app.domain.usecase.notification.SyncFcmTokenIfChangedUseCase
-
 data class OrganizationUseCase(
     val addOrg: AddOrganizationUseCase,
     val addMsg: AddMessageUseCase,
@@ -12,5 +9,6 @@ data class OrganizationUseCase(
     val getMemberOrgs: FetchMemberOrganizationsUseCase,
     val getUsersByIds: FetchUsersByIdsUseCase,
     val removeMember: RemoveMemberFromOrganizationUseCase,
-    val updateAvatarIndex: UpdateOrganizationAvatarIndexUseCase
+    val updateAvatarIndex: UpdateOrganizationAvatarIndexUseCase,
+    val updateSeenByForLastMessage: UpdateSeenByForLastMessageUseCase
 )

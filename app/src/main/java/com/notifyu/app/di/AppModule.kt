@@ -33,6 +33,7 @@ import com.notifyu.app.domain.usecase.organization.OrganizationUseCase
 import com.notifyu.app.domain.usecase.organization.RemoveMemberFromOrganizationUseCase
 import com.notifyu.app.domain.usecase.notification.SendFcmPushNotificationUseCase
 import com.notifyu.app.domain.usecase.notification.SyncFcmTokenIfChangedUseCase
+import com.notifyu.app.domain.usecase.organization.UpdateSeenByForLastMessageUseCase
 import com.notifyu.app.domain.usecase.organization.UpdateOrganizationAvatarIndexUseCase
 import com.notifyu.app.domain.usecase.user.CreateUserUseCase
 import com.notifyu.app.domain.usecase.user.GetCurrentUserUseCase
@@ -101,7 +102,8 @@ object AppModule {
             getMemberOrgs = FetchMemberOrganizationsUseCase(repository),
             getUsersByIds = FetchUsersByIdsUseCase(repository),
             removeMember = RemoveMemberFromOrganizationUseCase(repository),
-            updateAvatarIndex = UpdateOrganizationAvatarIndexUseCase(repository)
+            updateAvatarIndex = UpdateOrganizationAvatarIndexUseCase(repository),
+            updateSeenByForLastMessage = UpdateSeenByForLastMessageUseCase(repository)
         )
     }
 

@@ -8,7 +8,7 @@
 
         <!-- Splash screen icon -->
         <item name="android:windowSplashScreenAnimatedIcon">
-            @drawable/ic_launcher_foreground
+            @drawable/notifyu
         </item>
 
         <!-- Icon background color -->

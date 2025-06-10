@@ -1,5 +1,10 @@
 package com.notifyu.app.presentation.navigation.navgraph
 
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.navigation.NavHostController
@@ -20,7 +25,32 @@ fun RootNavHost(navHostController: NavHostController, mainViewModel: MainViewMod
     NavHost(
         navController = navHostController,
         startDestination = startDestination,
-        route = "Root"
+        route = "Root",
+        enterTransition = {
+            scaleIn(
+                initialScale = 0.95f,
+                animationSpec = tween(160)
+            ) + fadeIn(animationSpec = tween(100))
+        },
+        exitTransition = {
+            scaleOut(
+                targetScale = .95f,
+                animationSpec = tween(160)
+            ) + fadeOut(animationSpec = tween(150))
+        },
+        popEnterTransition = {
+            scaleIn(initialScale = .95f, animationSpec = tween(160)) + fadeIn(
+                animationSpec = tween(
+                    100
+                )
+            )
+        },
+        popExitTransition = {
+            scaleOut(
+                targetScale = .95f,
+                animationSpec = tween(160)
+            ) + fadeOut(animationSpec = tween(150))
+        }
     ) {
         authNavGraph(navController = navHostController, mainViewModel = mainViewModel)
         mainNavGraph(navController = navHostController, mainViewModel = mainViewModel)

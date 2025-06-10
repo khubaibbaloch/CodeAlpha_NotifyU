@@ -33,36 +33,14 @@ import com.notifyu.app.presentation.viewmodel.MainViewModel
 import androidx.compose.runtime.*
 import com.notifyu.app.presentation.navigation.navgraph.auth.AuthScreenRoutes
 import com.notifyu.app.presentation.navigation.navgraph.setting.SettingScreenRoutes
+import com.notifyu.app.presentation.screens.components.ConfirmationDialog
 
 @Composable
 fun SettingScreen(navController: NavController, mainViewModel: MainViewModel) {
     var showLogoutDialog by remember { mutableStateOf(false) }
 
 
-    if (showLogoutDialog) {
-        AlertDialog(
-            onDismissRequest = { showLogoutDialog = false },
-            title = { Text("Logout") },
-            text = { Text("Are you sure you want to logout?") },
-            confirmButton = {
-                TextButton(onClick = {
-                    showLogoutDialog = false
-                    mainViewModel.signOut()
-                    navController.navigate(AuthScreenRoutes.SignupScreen.route) {
-                        popUpTo(0) { inclusive = true }
-                    }
-                    mainViewModel.resetNavigation()
-                }) {
-                    Text("Yes")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showLogoutDialog = false }) {
-                    Text("Cancel")
-                }
-            }
-        )
-    }
+
 
     Column(
         modifier = Modifier
@@ -97,7 +75,10 @@ fun SettingScreen(navController: NavController, mainViewModel: MainViewModel) {
             Text("Data and Privacy")
         }
 
-        HorizontalDivider(modifier = Modifier.padding(start = 75.dp), color = SurfaceColor.copy(0.5f))
+        HorizontalDivider(
+            modifier = Modifier.padding(start = 75.dp),
+            color = SurfaceColor.copy(0.5f)
+        )
         Spacer(modifier = Modifier.height(16.dp))
 
         // About NotifyU
@@ -128,7 +109,10 @@ fun SettingScreen(navController: NavController, mainViewModel: MainViewModel) {
             Text("About NotifyU")
         }
 
-        HorizontalDivider(modifier = Modifier.padding(start = 75.dp), color = SurfaceColor.copy(0.5f))
+        HorizontalDivider(
+            modifier = Modifier.padding(start = 75.dp),
+            color = SurfaceColor.copy(0.5f)
+        )
         Spacer(modifier = Modifier.height(16.dp))
 
         // Logout
@@ -159,7 +143,29 @@ fun SettingScreen(navController: NavController, mainViewModel: MainViewModel) {
             Text("Logout")
         }
 
-        HorizontalDivider(modifier = Modifier.padding(start = 75.dp), color = SurfaceColor.copy(0.5f))
+        HorizontalDivider(
+            modifier = Modifier.padding(start = 75.dp),
+            color = SurfaceColor.copy(0.5f)
+        )
         Spacer(modifier = Modifier.height(16.dp))
     }
+
+
+    ConfirmationDialog(
+        title = "Logout",
+        text = "Are you sure you want to logout?",
+        showDialog = showLogoutDialog,
+        onDismiss = { showLogoutDialog = false },
+        onConfirm = {
+            showLogoutDialog = false
+            mainViewModel.signOut()
+            navController.navigate(AuthScreenRoutes.SignupScreen.route) {
+                popUpTo(navController.graph.startDestinationId) {
+                    inclusive = true
+                }
+                launchSingleTop = true
+            }
+
+            mainViewModel.resetNavigation()
+        })
 }

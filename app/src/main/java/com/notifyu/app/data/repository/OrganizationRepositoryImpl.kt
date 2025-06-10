@@ -6,6 +6,7 @@ import com.google.firebase.firestore.FieldPath
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.messaging.FirebaseMessaging
+import com.notifyu.app.data.model.LastMessage
 import com.notifyu.app.data.model.Message
 import com.notifyu.app.data.model.Organization
 import com.notifyu.app.data.model.User
@@ -14,12 +15,14 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
+import kotlin.String
+import kotlin.collections.filterIsInstance
 
 class OrganizationRepositoryImpl @Inject constructor(
     private val firebaseAuth: FirebaseAuth,
     private val firestore: FirebaseFirestore,
     private val firebaseMessaging: FirebaseMessaging,
-):OrganizationRepository {
+) : OrganizationRepository {
     override suspend fun addOrganization(name: String, code: String): Result<String> {
         return withContext(Dispatchers.IO) {
             try {
@@ -46,7 +49,13 @@ class OrganizationRepositoryImpl @Inject constructor(
                     "owner" to user.uid,
                     "avatarIndex" to 0,
                     "members" to emptyList<String>(),
-                    "message" to emptyList<Map<String, Any>>()
+                    "message" to emptyList<Map<String, Any>>(),
+                    "lastMessage" to mapOf(
+                        "content" to "",
+                        "senderId" to "",
+                        "timestamp" to 0L,
+                        "seenBy" to emptyList<String>()
+                    )
                 )
 
                 firestore.collection("organizations")
@@ -75,13 +84,19 @@ class OrganizationRepositoryImpl @Inject constructor(
                 val message = mapOf(
                     "content" to content,
                     "senderId" to senderId,
-                    "timestamp" to System.currentTimeMillis()
+                    "timestamp" to System.currentTimeMillis(),
                 )
 
                 firestore.collection("organizations")
                     .document(currentOrgId)
                     .update("message", FieldValue.arrayUnion(message))
                     .await()
+
+                addUpdateLastMessage(
+                    content,
+                    senderId,
+                    currentOrgId,
+                )
 
                 Result.success("Message added successfully")
 
@@ -91,6 +106,153 @@ class OrganizationRepositoryImpl @Inject constructor(
         }
     }
 
+    private suspend fun addUpdateLastMessage(
+        content: String,
+        senderId: String,
+        currentOrgId: String,
+    ): Result<String> {
+        return withContext(Dispatchers.IO) {
+            try {
+                if (currentOrgId.isBlank()) {
+                    return@withContext Result.failure(Exception("Organization ID is empty"))
+                }
+
+                val lastMessage = mapOf(
+                    "content" to content,
+                    "senderId" to senderId,
+                    "timestamp" to System.currentTimeMillis(),
+                    "seenBy" to emptyList<String>()
+                )
+
+                firestore.collection("organizations")
+                    .document(currentOrgId)
+                    .update("lastMessage", lastMessage)
+                    .await()
+
+                Result.success("Last message updated successfully")
+            } catch (e: Exception) {
+                Result.failure(Exception("Failed to update last message"))
+            }
+        }
+    }
+
+    override suspend fun updateSeenByForLastMessage(
+        currentOrgId: String,
+        currentUserUid: String,
+    ): Result<String> {
+        return withContext(Dispatchers.IO) {
+            try {
+                val docRef = firestore.collection("organizations").document(currentOrgId)
+                val snapshot = docRef.get().await()
+
+                if (!snapshot.exists()) {
+                    return@withContext Result.failure(Exception("Organization not found"))
+                }
+
+                // Check owner
+                val owner = snapshot.getString("owner") ?: ""
+                if (owner == currentUserUid) {
+                    return@withContext Result.success("Owner does not count as seen")
+                }
+
+                // Now update seenBy list on lastMessage
+                val lastMessageMap = snapshot.get("lastMessage") as? Map<*, *> ?: run {
+                    return@withContext Result.failure(Exception("Last message not found"))
+                }
+
+                val seenBy = (lastMessageMap["seenBy"] as? List<*>)?.mapNotNull { it as? String }
+                    ?: emptyList()
+
+                if (currentUserUid in seenBy) {
+                    return@withContext Result.success("User already in seenBy list")
+                }
+
+                val updatedSeenBy = seenBy + currentUserUid
+                val updatedLastMessage = lastMessageMap.toMutableMap()
+                updatedLastMessage["seenBy"] = updatedSeenBy
+
+                docRef.update("lastMessage", updatedLastMessage).await()
+
+                Result.success("SeenBy list updated successfully")
+            } catch (e: Exception) {
+                Result.failure(Exception("Failed to update seenBy list: ${e.message}"))
+            }
+        }
+    }
+
+
+
+//    override fun fetchOwnedOrganizations(onUpdate: (List<Organization>) -> Unit) {
+//        try {
+//            val user = firebaseAuth.currentUser ?: run {
+//                onUpdate(emptyList())
+//                return
+//            }
+//
+//            firestore.collection("organizations")
+//                .whereEqualTo("owner", user.uid)
+//                .addSnapshotListener { snapshot, error ->
+//                    try {
+//                        if (error != null) {
+//                            onUpdate(emptyList())
+//                            return@addSnapshotListener
+//                        }
+//
+//                        if (snapshot != null && !snapshot.isEmpty) {
+//                            val owned = snapshot.documents.mapNotNull { doc ->
+//                                try {
+//                                    val lastMessageMap = doc.get("lastMessage") as? Map<*, *>
+//                                    val lastMessage = lastMessageMap?.let {
+//                                        LastMessage(
+//                                            content = it["content"] as? String ?: "",
+//                                            senderId = it["senderId"] as? String ?: "",
+//                                            timestamp = (it["timestamp"] as? Number)?.toLong()
+//                                                ?: 0L,
+//                                            seenBy = (it["seenBy"] as? List<*>)?.filterIsInstance<String>()
+//                                                ?: emptyList()
+//                                        )
+//                                    }
+//                                    val messagesList =
+//                                        (snapshot.get("message") as? List<*>)?.mapNotNull { msg ->
+//                                            (msg as? Map<*, *>)?.let { msgMap ->
+//                                                Message(
+//                                                    content = msgMap["content"] as? String ?: "",
+//                                                    senderId = msgMap["senderId"] as? String ?: "",
+//                                                    timestamp = (msgMap["timestamp"] as? Number)?.toLong()
+//                                                        ?: 0L,
+//                                                )
+//                                            }
+//                                        } ?: emptyList()
+//
+//                                    Organization(
+//                                        id = doc.id,
+//                                        name = doc.getString("name") ?: "",
+//                                        code = doc.getString("code") ?: "",
+//                                        owner = doc.getString("owner") ?: "",
+//                                        avatarIndex = doc.getLong("avatarIndex")?.toInt() ?: 0,
+//                                        members = (doc.get("members") as? List<*>)?.filterIsInstance<String>()
+//                                            ?: emptyList(),
+//                                        messages = emptyList(), // load messages separately if needed
+//                                        lastMessage = lastMessage
+//                                    )
+//                                } catch (e: Exception) {
+//                                    null
+//                                }
+//                            }
+//
+//                            onUpdate(owned)
+//                        } else {
+//                            onUpdate(emptyList())
+//                        }
+//                    } catch (e: Exception) {
+//                        onUpdate(emptyList())
+//                    }
+//                }
+//
+//        } catch (e: Exception) {
+//            onUpdate(emptyList())
+//        }
+//    }
 
     override fun fetchOwnedOrganizations(onUpdate: (List<Organization>) -> Unit) {
         try {
@@ -111,6 +273,28 @@ class OrganizationRepositoryImpl @Inject constructor(
                         if (snapshot != null && !snapshot.isEmpty) {
                             val owned = snapshot.documents.mapNotNull { doc ->
                                 try {
+                                    val lastMessageMap = doc.get("lastMessage") as? Map<*, *>
+                                    val lastMessage = lastMessageMap?.let {
+                                        LastMessage(
+                                            content = it["content"] as? String ?: "",
+                                            senderId = it["senderId"] as? String ?: "",
+                                            timestamp = (it["timestamp"] as? Number)?.toLong() ?: 0L,
+                                            seenBy = (it["seenBy"] as? List<*>)?.filterIsInstance<String>()
+                                                ?: emptyList()
+                                        )
+                                    }
+
+                                    val messagesList = (doc.get("message") as? List<*>)?.mapNotNull { msg ->
+                                        (msg as? Map<*, *>)?.let { msgMap ->
+                                            Message(
+                                                content = msgMap["content"] as? String ?: "",
+                                                senderId = msgMap["senderId"] as? String ?: "",
+                                                timestamp = (msgMap["timestamp"] as? Number)?.toLong()
+                                                    ?: 0L
+                                            )
+                                        }
+                                    } ?: emptyList()
+
                                     Organization(
                                         id = doc.id,
                                         name = doc.getString("name") ?: "",
@@ -119,12 +303,14 @@ class OrganizationRepositoryImpl @Inject constructor(
                                         avatarIndex = doc.getLong("avatarIndex")?.toInt() ?: 0,
                                         members = (doc.get("members") as? List<*>)?.filterIsInstance<String>()
                                             ?: emptyList(),
-                                        messages = emptyList()
+                                        messages = messagesList,
+                                        lastMessage = lastMessage
                                     )
                                 } catch (e: Exception) {
                                     null
                                 }
                             }
+
                             onUpdate(owned)
                         } else {
                             onUpdate(emptyList())
@@ -138,6 +324,7 @@ class OrganizationRepositoryImpl @Inject constructor(
             onUpdate(emptyList())
         }
     }
+
 
     override fun fetchMessagesForOrganization(orgId: String, onUpdate: (List<Message>) -> Unit) {
         try {
@@ -156,7 +343,8 @@ class OrganizationRepositoryImpl @Inject constructor(
                                     Message(
                                         content = msgMap["content"] as? String ?: "",
                                         senderId = msgMap["senderId"] as? String ?: "",
-                                        timestamp = (msgMap["timestamp"] as? Number)?.toLong() ?: 0L
+                                        timestamp = (msgMap["timestamp"] as? Number)?.toLong()
+                                            ?: 0L,
                                     )
                                 }
                             } ?: emptyList()
@@ -169,6 +357,7 @@ class OrganizationRepositoryImpl @Inject constructor(
             onUpdate(emptyList())
         }
     }
+
 
     override suspend fun joinOrganizationByNameAndCode(name: String, code: String): Result<String> {
         return withContext(Dispatchers.IO) {
@@ -219,17 +408,44 @@ class OrganizationRepositoryImpl @Inject constructor(
                             return@addSnapshotListener
                         }
 
-                        val memberOf = snapshot.documents.map { doc ->
-                            Organization(
-                                id = doc.id,
-                                name = doc.getString("name") ?: "",
-                                code = doc.getString("code") ?: "",
-                                owner = doc.getString("owner") ?: "",
-                                avatarIndex = doc.getLong("avatarIndex")?.toInt() ?: 0,
-                                members = (doc.get("members") as? List<*>)?.filterIsInstance<String>()
-                                    ?: emptyList()
-                            )
+                        val memberOf = snapshot.documents.mapNotNull { doc ->
+                            try {
+                                val lastMessageMap = doc.get("lastMessage") as? Map<*, *>
+                                val lastMessage = lastMessageMap?.let {
+                                    LastMessage(
+                                        content = it["content"] as? String ?: "",
+                                        senderId = it["senderId"] as? String ?: "",
+                                        timestamp = (it["timestamp"] as? Number)?.toLong() ?: 0L,
+                                        seenBy = (it["seenBy"] as? List<*>)?.filterIsInstance<String>() ?: emptyList()
+                                    )
+                                }
+
+                                val messagesList = (doc.get("message") as? List<*>)?.mapNotNull { msg ->
+                                    (msg as? Map<*, *>)?.let { msgMap ->
+                                        Message(
+                                            content = msgMap["content"] as? String ?: "",
+                                            senderId = msgMap["senderId"] as? String ?: "",
+                                            timestamp = (msgMap["timestamp"] as? Number)?.toLong() ?: 0L
+                                        )
+                                    }
+                                } ?: emptyList()
+
+                                Organization(
+                                    id = doc.id,
+                                    name = doc.getString("name") ?: "",
+                                    code = doc.getString("code") ?: "",
+                                    owner = doc.getString("owner") ?: "",
+                                    avatarIndex = doc.getLong("avatarIndex")?.toInt() ?: 0,
+                                    members = (doc.get("members") as? List<*>)?.filterIsInstance<String>()
+                                        ?: emptyList(),
+                                    messages = messagesList,
+                                    lastMessage = lastMessage
+                                )
+                            } catch (e: Exception) {
+                                null
+                            }
                         }
+
                         onUpdate(memberOf)
                     } catch (e: Exception) {
                         onUpdate(emptyList())
@@ -240,6 +456,8 @@ class OrganizationRepositoryImpl @Inject constructor(
             onUpdate(emptyList())
         }
     }
+
+
 
     override suspend fun fetchUsersByIds(userIds: List<String>): Result<List<User>> {
         return withContext(Dispatchers.IO) {
@@ -277,7 +495,7 @@ class OrganizationRepositoryImpl @Inject constructor(
 
     override suspend fun removeMemberFromOrganization(
         organizationId: String,
-        uidToRemove: String
+        uidToRemove: String,
     ): Result<String> {
         return withContext(Dispatchers.IO) {
             try {
@@ -297,8 +515,10 @@ class OrganizationRepositoryImpl @Inject constructor(
     }
 
 
-
-    override suspend fun updateOrganizationAvatarIndex(orgId: String, newAvatarIndex: Int): Result<String> {
+    override suspend fun updateOrganizationAvatarIndex(
+        orgId: String,
+        newAvatarIndex: Int,
+    ): Result<String> {
         return withContext(Dispatchers.IO) {
             try {
                 val currentUser = firebaseAuth.currentUser

@@ -14,6 +14,14 @@ interface OrganizationRepository {
     suspend fun joinOrganizationByNameAndCode(name: String, code: String): Result<String>
     fun fetchMemberOrganizations(onUpdate: (List<Organization>) -> Unit)
     suspend fun fetchUsersByIds(userIds: List<String>): Result<List<User>>
-    suspend fun removeMemberFromOrganization(organizationId: String, uidToRemove: String): Result<String>
+    suspend fun removeMemberFromOrganization(
+        organizationId: String,
+        uidToRemove: String,
+    ): Result<String>
+
     suspend fun updateOrganizationAvatarIndex(orgId: String, newAvatarIndex: Int): Result<String>
+    suspend fun updateSeenByForLastMessage(
+        currentOrgId: String,
+        currentUserUid: String,
+    ): Result<String>
 }

@@ -30,6 +30,7 @@ import com.notifyu.app.R
 import com.notifyu.app.presentation.navigation.navgraph.auth.AuthScreenRoutes
 import com.notifyu.app.presentation.screens.components.AsyncProgressDialog
 import com.notifyu.app.presentation.screens.auth.components.LottieAnimations
+import com.notifyu.app.presentation.screens.auth.components.PrimaryAuthButton
 import com.notifyu.app.presentation.screens.components.ValidatedTextField
 import com.notifyu.app.presentation.theme.BackgroundColor
 import com.notifyu.app.presentation.theme.PrimaryColor
@@ -40,97 +41,124 @@ import com.notifyu.app.presentation.viewmodel.states.UiState
 @Composable
 fun ResetPasswordScreen(navController: NavController, mainViewModel: MainViewModel) {
 
-    // AFTER MVVM
+    // Get the current context to show Toasts
     val context = LocalContext.current
 
-    // EMAIL VALIDATION
+    // State for email input field
     val email = remember { mutableStateOf("") }
+
+    // Observe validation error state from ViewModel for email
     val emailError by mainViewModel.emailValidationError.collectAsState()
 
-    //  UI STATES
+    // Observe UI state for reset password operation
     val resetPasswordState by mainViewModel.resetPasswordState.collectAsState()
+
+    // Observe navigation events
     val navEvent by mainViewModel.navigation.collectAsState()
 
+    // Handle navigation events triggered by the ViewModel
     LaunchedEffect(navEvent) {
         when (navEvent) {
             AuthNavEvent.ToLogin -> {
-                navController.navigate(AuthScreenRoutes.LoginScreen.route)
+                // Navigate to Login screen
+                //navController.navigate(AuthScreenRoutes.LoginScreen.route)
+                navController.navigate(AuthScreenRoutes.LoginScreen.route) {
+                    popUpTo(AuthScreenRoutes.ResetPasswordScreen.route) {
+                        inclusive = true
+                    }
+                    launchSingleTop = true
+                }
+                // Reset navigation event after navigating
                 mainViewModel.resetNavigation()
             }
-            else -> {}
+
+            else -> {} // No action for other events
         }
     }
 
-    // BEFORE MVVM
 
-    Scaffold(containerColor = BackgroundColor) { innerPadding ->
-        Column(
-            modifier = Modifier
-                .padding(innerPadding)
-                .padding(horizontal = 16.dp)
-                .padding(bottom = 16.dp)
-                .fillMaxSize()
-                .imePadding(),
-            verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally
+    // Screen layout
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = 16.dp)
+            .padding(bottom = 16.dp)
+            .imePadding(), // Add padding when the keyboard is visible
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+
+        // App title
+        Text("Notifyu", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = PrimaryColor)
+
+        // Lottie animation
+        LottieAnimations(modifier = Modifier.weight(1f), R.raw.reset_password)
+
+        // Email input field with validation
+        ValidatedTextField(
+            label = "Email",
+            value = email,
+            isError = emailError,
+            errorMessage = "Please enter a valid email",
+            validator = { mainViewModel.validateEmail(it) }
+        )
+
+        // Submit button to trigger password reset
+        PrimaryAuthButton(
+            text = "Submit",
+            onClick = {
+                mainViewModel.onResetPasswordClicked(email.value)
+            },
+            enabled = resetPasswordState !is UiState.Loading,
+        )
+
+        // Navigate to login screen if user already has an account
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center
         ) {
-            Text("Notifyu", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = PrimaryColor)
-            LottieAnimations(modifier = Modifier.weight(1f), R.raw.reset_password)
-            ValidatedTextField(
-                label = "Email",
-                value = email,
-                isError = emailError,
-                errorMessage = "Please enter a valid email",
-                validator = { mainViewModel.validateEmail(it) }
-            )
-
-            Button(
-                onClick = {
-                    mainViewModel.onResetPasswordClicked(email.value)
-                },
-                shape = RoundedCornerShape(4.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text("Submit")
-            }
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.Center
-            ) {
-                Text(text = "Already have an account? ")
-                Text(
-                    text = "Login",
-                    color = PrimaryColor,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.clickable {
-                        navController.navigate(AuthScreenRoutes.LoginScreen.route)
+            Text(text = "Already have an account? ")
+            Text(
+                text = "Login",
+                color = PrimaryColor,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.clickable {
+                    navController.navigate(AuthScreenRoutes.LoginScreen.route) {
+                        popUpTo(AuthScreenRoutes.ResetPasswordScreen.route) {
+                            inclusive = true
+                        }
+                        launchSingleTop = true
                     }
+                  //  navController.navigate(AuthScreenRoutes.LoginScreen.route)
+                }
+            )
+        }
+
+        // UI state handling
+        when (resetPasswordState) {
+            is UiState.Loading -> {
+                // Show progress dialog while resetting password
+                AsyncProgressDialog(
+                    showDialog = true,
+                    message = "Sending password reset email..."
                 )
             }
 
-            when (resetPasswordState) {
-                is UiState.Loading -> {
-                    AsyncProgressDialog(
-                        showDialog = true,
-                        message = "Sending password reset email..."
-                    )
-                }
+            is UiState.Success -> {
+                // Show success message
+                Toast.makeText(context, "Reset email sent successfully!", Toast.LENGTH_LONG)
+                    .show()
+            }
 
-                is UiState.Success -> {
-                    Toast.makeText(context, "Reset email sent successfully!", Toast.LENGTH_LONG).show()
-                }
+            is UiState.Error -> {
+                // Show error message from UI state
+                val errorMessage = (resetPasswordState as UiState.Error).message
+                Toast.makeText(context, errorMessage, Toast.LENGTH_SHORT).show()
+            }
 
-                is UiState.Error -> {
-                    val errorMessage = (resetPasswordState as UiState.Error).message
-                    Toast.makeText(context, errorMessage, Toast.LENGTH_SHORT).show()
-
-                }
-
-                is UiState.Idle -> {
-
-                }
+            is UiState.Idle -> {
+                // Do nothing when idle
             }
         }
     }

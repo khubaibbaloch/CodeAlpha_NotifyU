@@ -1,9 +1,12 @@
 package com.notifyu.app.presentation.screens.main.components
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -22,10 +25,18 @@ import com.notifyu.app.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MainScreenTopBar(title: String,onNavigationClick:() -> Unit) {
+fun MainScreenTopBar(
+    title: String,
+    onNavigationClick: () -> Unit,
+    hasElevation: Boolean,
+    isDropDownMenuClicked: Boolean,
+    onMoreVertClick: () -> Unit,
+    onDismissRequest: () -> Unit,
+    onLeaveClick: () -> Unit,
+) {
     TopAppBar(
         navigationIcon = {
-            IconButton(onClick = {onNavigationClick()}) {
+            IconButton(onClick = { onNavigationClick() }) {
                 Icon(
                     painter = painterResource(R.drawable.ic_menu),
                     contentDescription = null,
@@ -45,21 +56,34 @@ fun MainScreenTopBar(title: String,onNavigationClick:() -> Unit) {
             )
         },
         actions = {
-            Icon(
-                imageVector = Icons.Default.MoreVert,
-                contentDescription = null,
-                modifier = Modifier
-                    .padding(horizontal = 8.dp)
-                    .size(20.dp),
-                tint = Color.Black
-            )
+            IconButton(onClick = onMoreVertClick) {
+                Icon(
+                    imageVector = Icons.Default.MoreVert,
+                    contentDescription = "More options",
+                    modifier = Modifier.size(20.dp),
+                    tint = Color.Black
+                )
+            }
+            DropdownMenu(
+                expanded = isDropDownMenuClicked,
+                onDismissRequest = onDismissRequest,
+                modifier = Modifier.background(Color.White)
+            ) {
+                DropdownMenuItem(
+                    text = { Text("Setting", color = Color.Black) },
+                    onClick = onLeaveClick
+                )
+            }
         },
         colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.White),
         modifier = Modifier
             .graphicsLayer {
-                shadowElevation = 2.dp.toPx()
-                shape = RectangleShape
-                clip = false
+                if (hasElevation) {
+                    shadowElevation = 2.dp.toPx()
+                    shape = RectangleShape
+                    clip = false
+                }
+
             }
 
     )

@@ -9,11 +9,21 @@ data class Organization(
     val owner: String = "",
     val avatarIndex :Int = 0,
     val members: List<String> = emptyList(),
-    val messages: List<Message> = emptyList()
+    val messages: List<Message> = emptyList(),
+    val lastMessage: LastMessage? = null
 )
 data class Message(
     val content: String = "",
     val senderId: String = "",
-    val timestamp: Long = 0L
+    val timestamp: Long = System.currentTimeMillis(),
 )
+data class LastMessage(
+    val content: String = "",
+    val senderId: String = "",
+    val timestamp: Long = System.currentTimeMillis(),
+    val seenBy: List<String> = emptyList()
+)
+
+
+
 
