@@ -401,7 +401,7 @@ class MainViewModel @Inject constructor(
         authLoginWithEmail(email, password, onResult = { isSuccess ->
             val user = currentUser
             if (isSuccess) {
-                if (user!!.isEmailVerified) {
+                if (user!= null && user!!.isEmailVerified) {
                     _navigation.value = AuthNavEvent.ToHome // Verified user -> home
                 } else {
                     _navigation.value = AuthNavEvent.ToVerifyEmail // Not verified -> verify email
