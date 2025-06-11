@@ -33,6 +33,7 @@ import com.notifyu.app.presentation.screens.components.AsyncProgressDialog
 import com.notifyu.app.presentation.screens.components.ValidatedTextField
 import com.notifyu.app.presentation.viewmodel.states.AuthNavEvent
 import com.notifyu.app.presentation.viewmodel.states.UiState
+import com.notifyu.app.utils.hideKeyboard
 
 @Composable
 fun LoginScreen(navController: NavController, mainViewModel: MainViewModel) {
@@ -170,7 +171,7 @@ fun LoginScreen(navController: NavController, mainViewModel: MainViewModel) {
                     password.value,
                     currentUser = currentUser
                 )
-                //hideKeyboard(context)
+                hideKeyboard(context)
             },
             enabled = loginState !is UiState.Loading,
         )

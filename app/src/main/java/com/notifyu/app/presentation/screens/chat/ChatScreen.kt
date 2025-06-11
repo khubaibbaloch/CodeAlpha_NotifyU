@@ -133,7 +133,7 @@ fun EventChatScreen(navController: NavController, mainViewModel: MainViewModel) 
         )
     }
 
-    LaunchedEffect(selectedOrg?.members) {
+    LaunchedEffect(selectedOrg?.members?.toList()) {
         val memberIds = selectedOrg?.members ?: emptyList()
         mainViewModel.fetchAndCheckOrgUsers(memberIds, currentUser?.uid, isOwner)
     }
@@ -141,9 +141,7 @@ fun EventChatScreen(navController: NavController, mainViewModel: MainViewModel) 
     LaunchedEffect(navEvent) {
         when (navEvent) {
             is AuthNavEvent.ToHome -> {
-                navController.navigate(MainScreenRoutes.HomeScreen.route) {
-                    popUpTo(0)
-                }
+                navController.popBackStack()
                 mainViewModel.resetNavigation()
             }
 
@@ -190,6 +188,7 @@ fun EventChatScreen(navController: NavController, mainViewModel: MainViewModel) 
                 messages = selectedOrg?.messages ?: emptyList(),
                 orgFcmTokens = orgFcmTokens,
                 mainViewModel = mainViewModel,
+                organizationId = selectedOrg?.id ?: "null"
             )
 
             1 -> EventPeopleTab(
@@ -216,6 +215,7 @@ fun EventMessagesTab(
     currentUserUid: String,
     isOwner: Boolean,
     organizationName: String,
+    organizationId: String,
     messages: List<Message>,
     orgFcmTokens: List<String>,
     mainViewModel: MainViewModel,
@@ -314,7 +314,9 @@ fun EventMessagesTab(
                                             context = context,
                                             targetTokens = orgFcmTokens,
                                             title = organizationName,
-                                            body = tempValue
+                                            body = tempValue,
+                                            orgId = organizationId,
+                                            orgName = organizationName
                                         )
                                     } else {
                                         Toast.makeText(context, message, Toast.LENGTH_SHORT).show()

@@ -4,6 +4,7 @@ package com.notifyu.app.presentation.screens.auth
 import android.widget.Toast
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
@@ -11,6 +12,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
@@ -29,6 +31,7 @@ import com.notifyu.app.presentation.theme.PrimaryColor
 import com.notifyu.app.presentation.viewmodel.MainViewModel
 import com.notifyu.app.presentation.viewmodel.states.AuthNavEvent
 import com.notifyu.app.presentation.viewmodel.states.UiState
+import com.notifyu.app.utils.hideKeyboard
 
 @Composable
 fun VerifyEmailScreen(navController: NavController, mainViewModel: MainViewModel) {
@@ -115,7 +118,7 @@ fun VerifyEmailScreen(navController: NavController, mainViewModel: MainViewModel
             text = "Submit",
             onClick = {
                 mainViewModel.onVerifyEmailClicked(email.value, currentUser = currentUser)
-
+                hideKeyboard(context)
             },
             enabled = emailVerificationState !is UiState.Loading
         )
@@ -148,16 +151,19 @@ fun VerifyEmailScreen(navController: NavController, mainViewModel: MainViewModel
         // Handle different UI states
         when (emailVerificationState) {
             is UiState.Loading -> {
-                AsyncProgressDialog(
-                    showDialog = true,
-                    message = "Waiting for email verification..."
-                )
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    AsyncProgressDialog(
+                        showDialog = true,
+                        message = "A verification email has been sent to your email address."
+                    )
+                }
             }
+
 
             is UiState.Success -> {
                 // Optionally show success message if needed
-                // val message = (emailVerificationState as UiState.Success).data
-                // Toast.makeText(context, message , Toast.LENGTH_SHORT).show()
+                 val message = (emailVerificationState as UiState.Success).data
+                 Toast.makeText(context, message , Toast.LENGTH_SHORT).show()
             }
 
             is UiState.Error -> {

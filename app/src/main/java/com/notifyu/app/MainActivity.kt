@@ -19,16 +19,18 @@ import com.notifyu.app.presentation.theme.NotifyUTheme
 import com.notifyu.app.presentation.theme.SurfaceColor
 import com.notifyu.app.presentation.viewmodel.MainViewModel
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
-        val splashScreen = installSplashScreen()
+        installSplashScreen()
         super.onCreate(savedInstanceState)
 
         val mainViewModel: MainViewModel by viewModels()
         mainViewModel.determineStartDestination()
+
 
         enableEdgeToEdge()
         setContent {

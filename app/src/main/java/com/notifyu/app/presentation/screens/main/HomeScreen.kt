@@ -135,10 +135,12 @@ fun HomeScreen(navController: NavController, mainViewModel: MainViewModel) {
 fun OwnedOrganizationsTab(navController: NavController, mainViewModel: MainViewModel) {
     val organizationsOwned by mainViewModel.organizationsOwned.collectAsState()
     val avatarList = getAvatarList()
+    val sortedOrgs =organizationsOwned
+        .sortedByDescending { it.lastMessage?.timestamp ?: 0L }
 
 
-    LazyColumn {
-        items(organizationsOwned) { org ->
+            LazyColumn {
+        items(sortedOrgs) { org ->
             val time =
                 org.lastMessage?.timestamp?.takeIf { it > 0L }?.let { formatMessageTimestamp(it) }
                     ?: ""
@@ -168,9 +170,12 @@ fun JoinedOrganizationsTab(navController: NavController, mainViewModel: MainView
 //    }
 
     val avatarList = getAvatarList()
+    val sortedOrgs = organizationsMemberOf
+        .sortedByDescending { it.lastMessage?.timestamp ?: 0L }
+
 
     LazyColumn {
-        items(organizationsMemberOf) { org ->
+        items(sortedOrgs) { org ->
             val time = org.lastMessage?.timestamp?.takeIf { it > 0L }
                 ?.let { formatMessageTimestamp(it) } ?: ""
 
@@ -208,7 +213,7 @@ fun OrganizationRow(
     val textColor = if (isSeen) {
         Color.Black
     } else {
-        SurfaceColor
+        PrimaryColor
     }
 
     Row(

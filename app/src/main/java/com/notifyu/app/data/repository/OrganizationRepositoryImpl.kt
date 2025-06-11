@@ -1,6 +1,7 @@
 package com.notifyu.app.data.repository
 
 
+import android.util.Log
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FieldPath
 import com.google.firebase.firestore.FieldValue
@@ -57,15 +58,14 @@ class OrganizationRepositoryImpl @Inject constructor(
                         "seenBy" to emptyList<String>()
                     )
                 )
-
                 firestore.collection("organizations")
                     .document(id)
                     .set(newOrg)
                     .await()
 
-                return@withContext Result.success("Organization added successfully")
+                Result.success("Organization added successfully")
             } catch (e: Exception) {
-                return@withContext Result.failure(Exception("Error adding organization "))
+                Result.failure(Exception("Error adding organization $e"))
             }
         }
     }
@@ -377,9 +377,14 @@ class OrganizationRepositoryImpl @Inject constructor(
 
                 val document = querySnapshot.documents.first()
                 val ownerId = document.getString("owner")
+                val members = document.get("members") as? List<String> ?: emptyList()
 
                 if (ownerId == currentUserId) {
                     return@withContext Result.failure(Exception("You are already the owner of this organization"))
+                }
+
+                if (members.contains(currentUserId)) {
+                    return@withContext Result.failure(Exception("You are already a member of this organization"))
                 }
 
                 val orgRef = document.reference
@@ -387,10 +392,11 @@ class OrganizationRepositoryImpl @Inject constructor(
 
                 Result.success("Joined organization successfully")
             } catch (e: Exception) {
-                Result.failure(Exception("Error joining organization "))
+                Result.failure(Exception("Error joining organization"))
             }
         }
     }
+
 
     override fun fetchMemberOrganizations(onUpdate: (List<Organization>) -> Unit) {
         try {

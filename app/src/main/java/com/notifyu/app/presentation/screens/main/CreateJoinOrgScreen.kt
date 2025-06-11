@@ -49,11 +49,12 @@ fun CreateJoinOrgScreen(navController: NavController, mainViewModel: MainViewMod
             CreateOrg(
                 organizationName = organizationName,
                 organizationCode = organizationCode,
-                onResult = {
+                onClick = {
                     mainViewModel.authAddOrganization(
                         name = organizationName.value,
                         code = organizationCode.value,
                     )
+                    hideKeyboard(context)
                 })
         } else {
             JoinOrg(
@@ -64,6 +65,7 @@ fun CreateJoinOrgScreen(navController: NavController, mainViewModel: MainViewMod
                         name = organizationName.value,
                         code = organizationCode.value,
                     )
+                    hideKeyboard(context)
                 })
         }
 
@@ -99,8 +101,9 @@ fun CreateJoinOrgScreen(navController: NavController, mainViewModel: MainViewMod
 fun CreateOrg(
     organizationName: MutableState<String>,
     organizationCode: MutableState<String>,
-    onResult: () -> Unit,
+    onClick: () -> Unit,
 ) {
+    val context = LocalContext.current
     Column(modifier = Modifier.fillMaxSize()) {
         ValidatedTextField(
             label = "Organization name",
@@ -118,7 +121,13 @@ fun CreateOrg(
             validator = { false }
         )
         Button(
-            onClick = { onResult() },
+            onClick = {
+                if (organizationName.value.isBlank() || organizationCode.value.isBlank()) {
+                    Toast.makeText(context, "All fields are required", Toast.LENGTH_SHORT).show()
+                } else {
+                    onClick()
+                }
+            },
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(4.dp),
             colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor)
@@ -134,6 +143,7 @@ fun JoinOrg(
     organizationCode: MutableState<String>,
     onClick: () -> Unit,
 ) {
+    val context = LocalContext.current
     Column(modifier = Modifier.fillMaxSize()) {
         ValidatedTextField(
             label = "Organization name",
@@ -153,7 +163,13 @@ fun JoinOrg(
 
 
         Button(
-            onClick = { onClick() },
+            onClick = {
+                if (organizationName.value.isBlank() || organizationCode.value.isBlank()) {
+                    Toast.makeText(context, "All fields are required", Toast.LENGTH_SHORT).show()
+                } else {
+                    onClick()
+                }
+            },
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(4.dp),
             colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor)

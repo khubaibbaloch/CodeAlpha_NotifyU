@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
@@ -24,7 +25,9 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -170,7 +173,11 @@ fun MainScreen(
                         modifier = Modifier.size(25.dp)
                     )
                     Spacer(modifier = Modifier.padding(horizontal = 4.dp))
-                    Text(text = "Add organization", fontSize = 14.sp, fontWeight = FontWeight.W400)
+                    Text(
+                        text = "Add organization",
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.W400
+                    )
                 }
                 Spacer(modifier = Modifier.padding(vertical = 24.dp))
 
@@ -202,16 +209,17 @@ fun MainScreen(
                     }
                 )
 
+
             }
 
-            if (showBottomSheet) {
+//            if (showBottomSheet) {
                 JoinCreateOrgBottomSheet(
                     onCreateClick = {
                         scope.launch {
                             showBottomSheet = false
                             drawerState.close()
                             mainViewModel.updateAddOrg(true)
-                            if (currentRoute != MainScreenRoutes.CreateJoinOrgScreen.route){
+                            if (currentRoute != MainScreenRoutes.CreateJoinOrgScreen.route) {
                                 navController.navigate(MainScreenRoutes.CreateJoinOrgScreen.route)
                             }
                         }
@@ -222,7 +230,7 @@ fun MainScreen(
                             showBottomSheet = false
                             drawerState.close()
                             mainViewModel.updateAddOrg(false)
-                            if (currentRoute != MainScreenRoutes.CreateJoinOrgScreen.route){
+                            if (currentRoute != MainScreenRoutes.CreateJoinOrgScreen.route) {
                                 navController.navigate(MainScreenRoutes.CreateJoinOrgScreen.route)
                             }
                         }
@@ -231,7 +239,7 @@ fun MainScreen(
                     showSheet = showBottomSheet,
                     onDismissRequest = { showBottomSheet = false }
                 )
-            }
+//            }
 
 
         }) {
@@ -355,110 +363,17 @@ fun MainScreen(
 
 
 @Composable
-fun OrganizationOwned(
-    organizations: List<Organization>,
-    avatarList: List<Int>,
-    onOrganizationOwnedClick: (Organization) -> Unit,
-) {
-    LazyColumn(modifier = Modifier.fillMaxWidth()) {
-        item {
-            Column(
-                modifier = Modifier
-                    .height(30.dp)
-                    .fillMaxWidth(),
-                verticalArrangement = Arrangement.Center
-            ) {
-                Text(
-                    text = "Organization Owned",
-                    fontSize = 12.sp,
-                    color = Color.Black
-                )
-
-            }
-        }
-        item {
-            Spacer(modifier = Modifier.padding(vertical = 4.dp))
-        }
-
-        items(organizations) { organization ->
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { onOrganizationOwnedClick(organization) }
-                    .padding(vertical = 8.dp, horizontal = 4.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Image(
-                    painter = painterResource(avatarList[organization.avatarIndex]),
-                    contentDescription = null,
-                    modifier = Modifier
-                        .size(25.dp)
-                        .clip(CircleShape)
-                        .background(SurfaceColor.copy(0.5f))
-
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(text = organization.name, fontSize = 14.sp)
-            }
-        }
-    }
-
-}
-
-@Composable
-fun OrganizationJoined(
-    avatarList: List<Int>,
-    organizationsMemberOf: List<Organization>,
-    onOrganizationJoinedClicked: (Organization) -> Unit,
-) {
-    LazyColumn(modifier = Modifier.fillMaxWidth()) {
-        item {
-            Column(
-                modifier = Modifier
-                    .height(30.dp)
-                    .fillMaxWidth(),
-                verticalArrangement = Arrangement.Center
-            ) {
-                Text(
-                    text = "Organization Joined",
-                    fontSize = 12.sp,
-                    color = Color.Black
-                )
-            }
-        }
-        item {
-            Spacer(modifier = Modifier.padding(vertical = 4.dp))
-        }
-        items(organizationsMemberOf) { organizations ->
-            Row(
-                modifier = Modifier
-                    .padding(start = 0.dp)
-                    .clickable { onOrganizationJoinedClicked(organizations) }
-            ) {
-
-                Image(
-                    painter = painterResource(avatarList[organizations.avatarIndex]),
-                    contentDescription = null,
-                    modifier = Modifier
-                        .size(25.dp)
-                        .clip(CircleShape)
-                        .background(SurfaceColor.copy(0.5f))
-
-                )
-                Text(text = organizations.name, fontSize = 14.sp)
-            }
-        }
-    }
-
-}
-
-@Composable
 fun DrawerOrganizationList(
     title: String,
     organizations: List<Organization>,
     avatarList: List<Int>,
     onOrganizationClick: (Organization) -> Unit,
 ) {
+    // Step 1: Sort and Limit to 5
+    val sortedOrgs = organizations
+        .sortedByDescending { it.lastMessage?.timestamp ?: 0L }
+        .take(5)
+
     LazyColumn(modifier = Modifier.fillMaxWidth()) {
         item {
             Column(
@@ -479,7 +394,7 @@ fun DrawerOrganizationList(
             Spacer(modifier = Modifier.padding(vertical = 4.dp))
         }
 
-        items(organizations) { organization ->
+        items(sortedOrgs) { organization ->
             Row(
                 modifier = Modifier
                     .fillMaxWidth()

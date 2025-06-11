@@ -7,8 +7,6 @@ import androidx.navigation.navigation
 import com.notifyu.app.presentation.screens.chat.EventChatScreen
 import com.notifyu.app.presentation.screens.main.CreateJoinOrgScreen
 import com.notifyu.app.presentation.screens.main.HomeScreen
-import com.notifyu.app.presentation.screens.main.OrganizationJoinedScreen
-import com.notifyu.app.presentation.screens.main.OrganizationOwnedScreen
 import com.notifyu.app.presentation.viewmodel.MainViewModel
 
 

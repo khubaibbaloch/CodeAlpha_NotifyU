@@ -57,8 +57,8 @@ class MainViewModel @Inject constructor(
     private val _selectedOrganization = MutableStateFlow<Organization?>(null)
     val selectedOrganization: StateFlow<Organization?> = _selectedOrganization
 
-    private val _orgUsers = MutableStateFlow<List<User>>(emptyList())
-    val orgUsers: StateFlow<List<User>> = _orgUsers
+//    private val _orgUsers = MutableStateFlow<List<User>>(emptyList())
+//    val orgUsers: StateFlow<List<User>> = _orgUsers
 
     private val _orgEmails = MutableStateFlow<List<String>>(emptyList())
     val orgEmails: StateFlow<List<String>> = _orgEmails
@@ -69,11 +69,11 @@ class MainViewModel @Inject constructor(
     private val _orgUids = MutableStateFlow<List<String>>(emptyList())
     val orgUids: StateFlow<List<String>> = _orgUids
 
-    private val _isOwner = MutableStateFlow<Boolean>(false)
-    val isOwner: StateFlow<Boolean> = _isOwner
+//    private val _isOwner = MutableStateFlow<Boolean>(false)
+//    val isOwner: StateFlow<Boolean> = _isOwner
 
-    private val _shouldRedirectHome = MutableStateFlow(false)
-    val shouldRedirectHome: StateFlow<Boolean> = _shouldRedirectHome
+//    private val _shouldRedirectHome = MutableStateFlow(false)
+//    val shouldRedirectHome: StateFlow<Boolean> = _shouldRedirectHome
 
     // UI STATE USING
 
@@ -145,6 +145,10 @@ class MainViewModel @Inject constructor(
                     checkUserAndNavigate(it)
                     authFetchOwnedOrganizations()
                     authFetchMemberOrganizations()
+                    for (i in 1..100) {
+                        Log.d("Test", "observeAuthState: $i")
+                    }
+
                 }
 
             }
@@ -334,8 +338,6 @@ class MainViewModel @Inject constructor(
                 } else {
                     _navigation.value = AuthNavEvent.ToVerifyEmail
                 }
-            } else {
-                _loginState.value = UiState.Error("Check email or password")
             }
         })
     }
@@ -346,13 +348,13 @@ class MainViewModel @Inject constructor(
             _loginState.value = UiState.Loading
             val result = authUseCases.login(email = email, password = password)
             result.onSuccess { message ->
-                //onResult(true)
+                onResult(true)
                 _loginState.value = UiState.Success(message)
             }.onFailure { error ->
                 _loginState.value = UiState.Error(error.message ?: "Unknown error")
-                //onResult(true)
+                onResult(false)
             }
-        }
+        };
     }
 
 
@@ -419,8 +421,10 @@ class MainViewModel @Inject constructor(
             _createJoinOrgState.value = UiState.Loading
             val result = organizationUseCase.addOrg(name = name, code = code)
             result.onSuccess { message ->
+                Log.d("orgDebug", "org : ${message}")
                 _createJoinOrgState.value = UiState.Success(message)
             }.onFailure { error ->
+                Log.d("orgDebug", "org : ${error.localizedMessage}")
                 _createJoinOrgState.value = UiState.Error(error.message ?: "Unknown error")
             }
         }
@@ -502,6 +506,8 @@ class MainViewModel @Inject constructor(
         targetTokens: List<String>,
         title: String,
         body: String,
+        orgId: String,
+        orgName : String
     ) {
         viewModelScope.launch {
 
@@ -509,7 +515,9 @@ class MainViewModel @Inject constructor(
                 context = context,
                 targetTokens = targetTokens,
                 title = title,
-                body = body
+                body = body,
+                orgId = orgId,
+                orgName = orgName
             )
         }
     }
@@ -550,15 +558,15 @@ class MainViewModel @Inject constructor(
         currentUid: String?,
         isOwner: Boolean,
     ) {
-        _orgUsers.value = emptyList()
+
         _orgEmails.value = emptyList()
         _orgFcmTokens.value = emptyList()
         _orgUids.value = emptyList()
 
-        if (memberIds.isEmpty()) {
-            _orgUsers.value = emptyList()
-            return
-        }
+//        if (memberIds.isEmpty()) {
+//            _orgUsers.value = emptyList()
+//            return
+//        }
 
         authFetchUsersByIds(memberIds) { fetchedUsers ->
             //_orgUsers.value = fetchedUsers
@@ -568,6 +576,11 @@ class MainViewModel @Inject constructor(
             _orgUids.value = fetchedUsers.map { it.uid }
 
             val uids = fetchedUsers.map { it.uid }
+
+            Log.d(
+                "navBack",
+                "fetchAndCheckOrgUsers: Owner ${isOwner} and ${currentUid !in uids} "
+            )
             if (currentUid != null && !isOwner && currentUid !in uids) {
                 Log.d(
                     "navBack",

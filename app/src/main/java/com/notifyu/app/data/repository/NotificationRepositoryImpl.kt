@@ -52,6 +52,8 @@ class NotificationRepositoryImpl @Inject constructor(
         targetTokens: List<String>,
         title: String,
         body: String,
+        orgId: String,
+        orgName: String
     ): Result<Unit> {
         return withContext(Dispatchers.IO) {
             try {
@@ -77,8 +79,13 @@ class NotificationRepositoryImpl @Inject constructor(
                                 put("title", title)
                                 put("body", body)
                             })
+                            put("data", JSONObject().apply {
+                                put("orgId", orgId)
+                                put("orgName", orgName)
+                            })
                         })
                     }
+
 
                     val requestBody = json.toString().toRequestBody(mediaType)
 

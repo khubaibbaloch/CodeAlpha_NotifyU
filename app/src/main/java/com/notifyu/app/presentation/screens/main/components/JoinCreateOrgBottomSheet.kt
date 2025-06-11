@@ -51,7 +51,7 @@ fun JoinCreateOrgBottomSheet(
     val scope = rememberCoroutineScope()
 
 
-    if (showSheet) {
+    if (true) {
         ModalBottomSheet(
             onDismissRequest = {
                 scope.launch {
@@ -75,7 +75,7 @@ fun JoinCreateOrgBottomSheet(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text("Add organization", fontSize = 18.sp)
+                    Text("Add organization", fontSize = 16.sp)
                     IconButton(
                         onClick = {
                             scope.launch {
@@ -115,9 +115,9 @@ fun JoinCreateOrgBottomSheet(
                         )
                     }
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Create new organization", fontSize = 18.sp)
+                    Text("Create new organization", fontSize = 16.sp)
                 }
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(0.dp))
                 HorizontalDivider(modifier = Modifier.padding(start = 55.dp))
                 Spacer(modifier = Modifier.height(32.dp))
                 Row(
@@ -143,9 +143,9 @@ fun JoinCreateOrgBottomSheet(
                         )
                     }
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Join existing organization", fontSize = 18.sp)
+                    Text("Join existing organization", fontSize = 16.sp)
                 }
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(0.dp))
                 HorizontalDivider(modifier = Modifier.padding(start = 55.dp))
                 Spacer(modifier = Modifier.height(32.dp))
 
