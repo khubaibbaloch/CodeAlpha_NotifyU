@@ -37,55 +37,58 @@ import com.notifyu.app.presentation.screens.components.ConfirmationDialog
 
 @Composable
 fun SettingScreen(navController: NavController, mainViewModel: MainViewModel) {
+    // State to control the visibility of the logout confirmation dialog
     var showLogoutDialog by remember { mutableStateOf(false) }
-
-
-
 
     Column(
         modifier = Modifier
-            .fillMaxSize()
-            .padding(vertical = 16.dp)
+            .fillMaxSize() // Makes the column take the full available height
+            .padding(vertical = 16.dp) // Adds vertical padding to the entire column
     ) {
-        // Data & Privacy
+
+        // --- Section: Data & Privacy ---
         Row(
             modifier = Modifier
-                .fillMaxWidth()
+                .fillMaxWidth() // Makes the row take full width
                 .clickable {
+                    // Navigates to the DataPrivacyScreen when clicked
                     navController.navigate(SettingScreenRoutes.DataPrivacyScreen.route)
                 }
-                .padding(horizontal = 16.dp, vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically
+                .padding(horizontal = 16.dp, vertical = 8.dp), // Adds padding inside the row
+            verticalAlignment = Alignment.CenterVertically // Vertically aligns children to center
         ) {
+            // Icon container with a circular background
             Box(
                 modifier = Modifier
-                    .size(40.dp)
-                    .background(SurfaceColor.copy(0.3f), CircleShape)
+                    .size(40.dp) // Fixed size box
+                    .background(SurfaceColor.copy(0.3f), CircleShape) // Circular background with some transparency
             ) {
                 Icon(
-                    painter = painterResource(R.drawable.ic_privacy),
-                    contentDescription = null,
-                    tint = Color.Unspecified,
+                    painter = painterResource(R.drawable.ic_privacy), // Loads privacy icon
+                    contentDescription = null, // No accessibility description
+                    tint = Color.Unspecified, // No tint is applied to icon
                     modifier = Modifier
-                        .size(22.dp)
-                        .align(Alignment.Center)
+                        .size(22.dp) // Icon size
+                        .align(Alignment.Center) // Centered inside the box
                 )
             }
-            Spacer(modifier = Modifier.width(16.dp))
-            Text("Data and Privacy")
+            Spacer(modifier = Modifier.width(16.dp)) // Space between icon and text
+            Text("Data and Privacy") // Label for this option
         }
 
+        // Divider under the "Data and Privacy" row, starts after icon
         HorizontalDivider(
-            modifier = Modifier.padding(start = 75.dp),
-            color = SurfaceColor.copy(0.5f)
+            modifier = Modifier.padding(start = 75.dp), // Leaves space to align with text
+            color = SurfaceColor.copy(0.5f) // Uses semi-transparent surface color
         )
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(16.dp)) // Space between sections
 
-        // About NotifyU
+        // --- Section: About NotifyU ---
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .clickable {
+                    // Navigates to the AboutNotifyuScreen when clicked
                     navController.navigate(SettingScreenRoutes.AboutNotifyuScreen.route)
                 }
                 .padding(horizontal = 16.dp, vertical = 8.dp),
@@ -97,7 +100,7 @@ fun SettingScreen(navController: NavController, mainViewModel: MainViewModel) {
                     .background(SurfaceColor.copy(0.3f), CircleShape)
             ) {
                 Icon(
-                    painter = painterResource(R.drawable.ic_aboutus),
+                    painter = painterResource(R.drawable.ic_aboutus), // Loads About Us icon
                     contentDescription = null,
                     tint = Color.Unspecified,
                     modifier = Modifier
@@ -106,20 +109,22 @@ fun SettingScreen(navController: NavController, mainViewModel: MainViewModel) {
                 )
             }
             Spacer(modifier = Modifier.width(16.dp))
-            Text("About NotifyU")
+            Text("About NotifyU") // Label for this option
         }
 
+        // Divider under the "About NotifyU" row
         HorizontalDivider(
             modifier = Modifier.padding(start = 75.dp),
             color = SurfaceColor.copy(0.5f)
         )
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Logout
+        // --- Section: Logout ---
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .clickable {
+                    // Sets state to true to show logout confirmation dialog
                     showLogoutDialog = true
                 }
                 .padding(horizontal = 16.dp, vertical = 8.dp),
@@ -131,7 +136,7 @@ fun SettingScreen(navController: NavController, mainViewModel: MainViewModel) {
                     .background(SurfaceColor.copy(0.3f), CircleShape)
             ) {
                 Icon(
-                    painter = painterResource(R.drawable.ic_logout),
+                    painter = painterResource(R.drawable.ic_logout), // Loads logout icon
                     contentDescription = null,
                     tint = Color.Unspecified,
                     modifier = Modifier
@@ -140,9 +145,10 @@ fun SettingScreen(navController: NavController, mainViewModel: MainViewModel) {
                 )
             }
             Spacer(modifier = Modifier.width(16.dp))
-            Text("Logout")
+            Text("Logout") // Label for logout option
         }
 
+        // Divider under the "Logout" row
         HorizontalDivider(
             modifier = Modifier.padding(start = 75.dp),
             color = SurfaceColor.copy(0.5f)
@@ -150,22 +156,25 @@ fun SettingScreen(navController: NavController, mainViewModel: MainViewModel) {
         Spacer(modifier = Modifier.height(16.dp))
     }
 
-
+    // --- Logout Confirmation Dialog ---
     ConfirmationDialog(
-        title = "Logout",
-        text = "Are you sure you want to logout?",
-        showDialog = showLogoutDialog,
-        onDismiss = { showLogoutDialog = false },
+        title = "Logout", // Dialog title
+        text = "Are you sure you want to logout?", // Dialog message
+        showDialog = showLogoutDialog, // Dialog visibility based on state
+        onDismiss = { showLogoutDialog = false }, // Hides dialog on dismiss
         onConfirm = {
-            showLogoutDialog = false
-            mainViewModel.signOut()
+            // Handles logout confirmation
+            showLogoutDialog = false // Close the dialog
+            mainViewModel.signOut() // Call sign out method from ViewModel
             navController.navigate(AuthScreenRoutes.SignupScreen.route) {
+                // Navigate to SignupScreen and clear backstack
                 popUpTo(navController.graph.startDestinationId) {
-                    inclusive = true
+                    inclusive = true // Removes all previous destinations
                 }
-                launchSingleTop = true
+                launchSingleTop = true // Avoid duplicate destination on back stack
             }
 
-            mainViewModel.resetNavigation()
-        })
+            mainViewModel.resetNavigation() // Reset any navigation-related state in ViewModel
+        }
+    )
 }

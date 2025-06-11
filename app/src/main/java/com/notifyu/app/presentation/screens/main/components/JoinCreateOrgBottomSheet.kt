@@ -51,7 +51,7 @@ fun JoinCreateOrgBottomSheet(
     val scope = rememberCoroutineScope()
 
 
-    if (true) {
+    if (showSheet) {
         ModalBottomSheet(
             onDismissRequest = {
                 scope.launch {

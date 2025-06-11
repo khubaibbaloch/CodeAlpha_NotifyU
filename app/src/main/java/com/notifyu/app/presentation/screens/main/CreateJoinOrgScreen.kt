@@ -29,14 +29,17 @@ import com.notifyu.app.presentation.theme.PrimaryColor
 import com.notifyu.app.presentation.viewmodel.states.UiState
 import com.notifyu.app.utils.hideKeyboard
 
+// Main Composable to show Create or Join Organization screen
 @Composable
 fun CreateJoinOrgScreen(navController: NavController, mainViewModel: MainViewModel) {
 
-    val context = LocalContext.current
-    //  UI STATES
+    val context = LocalContext.current // Get the current context for showing toasts or keyboard actions
+
+    // Collecting state from ViewModel to observe the UI state and whether to create or join org
     val createJoinOrgState by mainViewModel.createJoinOrgState.collectAsState()
     val isAddOrg by mainViewModel.isAddOrg.collectAsState()
 
+    // Local states to hold user input
     val organizationName = remember { mutableStateOf("") }
     val organizationCode = remember { mutableStateOf("") }
 
@@ -45,32 +48,37 @@ fun CreateJoinOrgScreen(navController: NavController, mainViewModel: MainViewMod
             .padding(16.dp)
             .fillMaxSize()
     ) {
+        // Based on isAddOrg flag, show either Create or Join UI
         if (isAddOrg) {
             CreateOrg(
                 organizationName = organizationName,
                 organizationCode = organizationCode,
                 onClick = {
+                    // Calls ViewModel to create org when button is clicked
                     mainViewModel.authAddOrganization(
                         name = organizationName.value,
                         code = organizationCode.value,
                     )
-                    hideKeyboard(context)
+                    hideKeyboard(context) // Hide keyboard after submission
                 })
         } else {
             JoinOrg(
                 organizationName = organizationName,
                 organizationCode = organizationCode,
                 onClick = {
+                    // Calls ViewModel to join org when button is clicked
                     mainViewModel.authJoinOrganizationByNameAndCode(
                         name = organizationName.value,
                         code = organizationCode.value,
                     )
-                    hideKeyboard(context)
+                    hideKeyboard(context) // Hide keyboard after submission
                 })
         }
 
+        // Handling different UI states returned from ViewModel
         when (createJoinOrgState) {
             is UiState.Loading -> {
+                // Show loading dialog when in loading state
                 AsyncProgressDialog(
                     showDialog = true,
                     "Processing..."
@@ -78,25 +86,28 @@ fun CreateJoinOrgScreen(navController: NavController, mainViewModel: MainViewMod
             }
 
             is UiState.Success -> {
+                // On success, show toast and navigate back
                 val message = (createJoinOrgState as UiState.Success).data
                 Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
-               // navController.navigate(MainScreenRoutes.HomeScreen.route)
+                // Commented navigation to Home screen, instead using popBackStack
+                // navController.navigate(MainScreenRoutes.HomeScreen.route)
                 navController.popBackStack()
             }
 
             is UiState.Error -> {
+                // Show error message as a toast
                 val errorMessage = (createJoinOrgState as UiState.Error).message
                 Toast.makeText(context, errorMessage, Toast.LENGTH_SHORT).show()
-
             }
 
             is UiState.Idle -> {
-
+                // No action needed for idle state
             }
         }
     }
 }
 
+// Composable for creating an organization
 @Composable
 fun CreateOrg(
     organizationName: MutableState<String>,
@@ -105,14 +116,17 @@ fun CreateOrg(
 ) {
     val context = LocalContext.current
     Column(modifier = Modifier.fillMaxSize()) {
+
+        // Text field for organization name input
         ValidatedTextField(
             label = "Organization name",
             value = organizationName,
-            isError = false,
+            isError = false, // No validation currently applied
             errorMessage = "",
-            validator = { false }
+            validator = { false } // Always false, i.e., no error
         )
 
+        // Text field for organization code input
         ValidatedTextField(
             label = "Organization code",
             value = organizationCode,
@@ -120,23 +134,27 @@ fun CreateOrg(
             errorMessage = "",
             validator = { false }
         )
+
+        // Submit button for creating organization
         Button(
             onClick = {
+                // Check if inputs are empty
                 if (organizationName.value.isBlank() || organizationCode.value.isBlank()) {
                     Toast.makeText(context, "All fields are required", Toast.LENGTH_SHORT).show()
                 } else {
-                    onClick()
+                    onClick() // Call the passed lambda if inputs are valid
                 }
             },
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(4.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor)
+            colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor) // PrimaryColor should be defined elsewhere
         ) {
             Text(text = "Create organization", color = Color.White)
         }
     }
 }
 
+// Composable for joining an organization
 @Composable
 fun JoinOrg(
     organizationName: MutableState<String>,
@@ -145,14 +163,17 @@ fun JoinOrg(
 ) {
     val context = LocalContext.current
     Column(modifier = Modifier.fillMaxSize()) {
+
+        // Text field for organization name input
         ValidatedTextField(
             label = "Organization name",
             value = organizationName,
             isError = false,
             errorMessage = "",
-            validator = { false }
+            validator = { false } // No actual validation logic
         )
 
+        // Text field for organization code input
         ValidatedTextField(
             label = "Organization code",
             value = organizationCode,
@@ -161,13 +182,14 @@ fun JoinOrg(
             validator = { false }
         )
 
-
+        // Submit button for joining organization
         Button(
             onClick = {
+                // Basic check for empty fields
                 if (organizationName.value.isBlank() || organizationCode.value.isBlank()) {
                     Toast.makeText(context, "All fields are required", Toast.LENGTH_SHORT).show()
                 } else {
-                    onClick()
+                    onClick() // Call the passed lambda if valid
                 }
             },
             modifier = Modifier.fillMaxWidth(),

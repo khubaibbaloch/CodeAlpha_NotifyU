@@ -84,48 +84,43 @@ import kotlinx.coroutines.launch
 fun EventChatScreen(navController: NavController, mainViewModel: MainViewModel) {
     val context = LocalContext.current
 
+    // Tracks which tab is currently selected (0 = Messages, 1 = People, 2 = Setting)
     var selectedTabIndex by remember { mutableStateOf(0) }
-//    val orgEmails = remember { mutableStateListOf<String>() }
-//    val orgFcmTokens = remember { mutableStateListOf<String>() }
-//    val orgUids = remember { mutableStateListOf<String>() }
 
+    // Collecting necessary state values from ViewModel using StateFlow
     val organizationOwned by mainViewModel.organizationsOwned.collectAsState()
     val organizationId by mainViewModel.onOrganizationsClick.collectAsState()
     val organizationsMemberOf by mainViewModel.organizationsMemberOf.collectAsState()
     val currentUser by mainViewModel.currentUser.collectAsState()
     val messages by mainViewModel.onOrgMessages.collectAsState()
-    //val selectedOrg by mainViewModel.selectedOrganization.collectAsState()
     val orgEmails by mainViewModel.orgEmails.collectAsState()
     val orgFcmTokens by mainViewModel.orgFcmTokens.collectAsState()
     val orgUids by mainViewModel.orgUids.collectAsState()
-//    val isOwner by mainViewModel.isOwner.collectAsState()
     val navEvent by mainViewModel.navigation.collectAsState()
 
+    // Titles for the three tabs
     val tabTitles = listOf("Messages", "People", "Setting")
 
-
-//    val selectedOrganization = remember(organizationOwned, organizationsMemberOf, organizationId) {
-//        organizationOwned.find { it.id == organizationId }
-//            ?: organizationsMemberOf.find { it.id == organizationId }
-//    }
-
-
+    // Find the selected organization using its ID from either owned or member-of list
     val selectedOrg = remember(organizationOwned, organizationsMemberOf, organizationId) {
         organizationOwned.find { it.id == organizationId }
             ?: organizationsMemberOf.find { it.id == organizationId }
     }
+
+    // Check if the current user is the owner of the selected organization
     val isOwner = remember(selectedOrg, currentUser) {
         selectedOrg?.owner == currentUser?.uid
     }
 
-
+    // Get avatar resources and fallback to default if not available
     val avatarList = getAvatarList()
     val avatarIndex = selectedOrg?.avatarIndex ?: 0
     val avatarRes = avatarList.getOrElse(avatarIndex) { avatarList[0] }
 
+    // Coroutine scope for launching tasks
     val scope = rememberCoroutineScope()
 
-
+    // When the last message changes, mark it as seen by the current user
     LaunchedEffect(selectedOrg?.lastMessage) {
         mainViewModel.updateSeenByForLastMessage(
             currentOrgId = selectedOrg?.id ?: "null",
@@ -133,11 +128,13 @@ fun EventChatScreen(navController: NavController, mainViewModel: MainViewModel) 
         )
     }
 
+    // When the list of members changes, fetch their data and determine roles
     LaunchedEffect(selectedOrg?.members?.toList()) {
         val memberIds = selectedOrg?.members ?: emptyList()
         mainViewModel.fetchAndCheckOrgUsers(memberIds, currentUser?.uid, isOwner)
     }
 
+    // Handle navigation events triggered by the ViewModel
     LaunchedEffect(navEvent) {
         when (navEvent) {
             is AuthNavEvent.ToHome -> {
@@ -145,12 +142,14 @@ fun EventChatScreen(navController: NavController, mainViewModel: MainViewModel) 
                 mainViewModel.resetNavigation()
             }
 
+            // Other nav events (currently ignored)
             else -> {}
         }
     }
 
-
+    // Layout column holding the tab and corresponding content
     Column {
+        // Tab UI showing the current selected tab
         TabRow(
             selectedTabIndex = selectedTabIndex,
             containerColor = Color.White,
@@ -160,9 +159,10 @@ fun EventChatScreen(navController: NavController, mainViewModel: MainViewModel) 
                     color = PrimaryColor
                 )
             },
-            divider = { HorizontalDivider(color = Color.Gray.copy(0.2f)) }
+            divider = { HorizontalDivider(color = Color.Gray.copy(0.2f)) } // Divider line between tab and content
         ) {
             tabTitles.forEachIndexed { index, title ->
+                // Only the owner can access all tabs; non-owners only see the Messages tab
                 val shouldEnable = isOwner || index == 0
 
                 Tab(
@@ -179,12 +179,13 @@ fun EventChatScreen(navController: NavController, mainViewModel: MainViewModel) 
                 )
             }
         }
+
+        // Show tab content based on selected tab index
         when (selectedTabIndex) {
             0 -> EventMessagesTab(
                 currentUserUid = currentUser?.uid ?: "null",
                 isOwner = isOwner,
                 organizationName = selectedOrg?.name ?: "null",
-//                messages = messages,
                 messages = selectedOrg?.messages ?: emptyList(),
                 orgFcmTokens = orgFcmTokens,
                 mainViewModel = mainViewModel,
@@ -212,54 +213,56 @@ fun EventChatScreen(navController: NavController, mainViewModel: MainViewModel) 
 
 @Composable
 fun EventMessagesTab(
-    currentUserUid: String,
-    isOwner: Boolean,
-    organizationName: String,
-    organizationId: String,
-    messages: List<Message>,
-    orgFcmTokens: List<String>,
-    mainViewModel: MainViewModel,
+    currentUserUid: String,                  // The UID of the current logged-in user
+    isOwner: Boolean,                        // Indicates if the current user is the owner (has permission to send messages)
+    organizationName: String,               // Name of the organization (used in push notification title and message bubble)
+    organizationId: String,                 // Unique identifier for the organization (used for push notifications)
+    messages: List<Message>,                // List of chat messages to be displayed
+    orgFcmTokens: List<String>,            // List of FCM tokens to send notifications to
+    mainViewModel: MainViewModel           // ViewModel for handling business logic like sending messages and notifications
 ) {
-    val textFieldValue = remember { mutableStateOf("") }
-    val context = LocalContext.current
-    val listState = rememberLazyListState()
-    val scope = rememberCoroutineScope()
+    val textFieldValue = remember { mutableStateOf("") }  // Holds the current input text in the message field
+    val context = LocalContext.current                    // Get the current context for showing toasts or passing to ViewModel
+    val listState = rememberLazyListState()               // Remember the scroll state for the LazyColumn
+    val scope = rememberCoroutineScope()                  // Coroutine scope to launch scrolling effect
 
+    // Auto-scroll to the bottom of the chat list whenever the number of messages changes
     LaunchedEffect(messages.size) {
         scope.launch {
             if (messages.isNotEmpty()){
-                listState.scrollToItem(messages.size - 1)
+                listState.scrollToItem(messages.size - 1)  // Scroll to the last message
             }
         }
     }
 
-
+    // Group messages by date and prepare a list that includes both date headers and chat messages
     val displayItems = remember(messages) {
         messages
-            .groupBy { formatDateForGrouping(it.timestamp) }
+            .groupBy { formatDateForGrouping(it.timestamp) }              // Group by formatted date
             .flatMap { (date, msgs) ->
-                listOf(DisplayItem.DateHeader(date)) + msgs.map { DisplayItem.ChatMessage(it) }
+                listOf(DisplayItem.DateHeader(date)) +                    // Add a date header
+                        msgs.map { DisplayItem.ChatMessage(it) }                 // Add the messages under that date
             }
     }
 
-
     Column(
         modifier = Modifier
-            .padding(horizontal = 16.dp)
-            .fillMaxSize()
-            .imePadding(),
+            .padding(horizontal = 16.dp)    // Horizontal padding
+            .fillMaxSize()                  // Fills the whole screen
+            .imePadding(),                  // Avoids overlap with the keyboard
     ) {
 
-
+        // Message list view
         LazyColumn(
             modifier = Modifier
                 .fillMaxWidth()
-                .weight(1f),
-            state = listState,
+                .weight(1f),               // Fills remaining vertical space
+            state = listState,             // Uses remembered scroll state
         ) {
             itemsIndexed(displayItems) { index, item ->
                 when (item) {
                     is DisplayItem.DateHeader -> {
+                        // Render the date header
                         Text(
                             text = item.date,
                             fontSize = 13.sp,
@@ -274,42 +277,48 @@ fun EventMessagesTab(
 
                     is DisplayItem.ChatMessage -> {
                         val msg = item.message
+                        // Display individual message bubble
                         MessageBubble(
                             organizationName = organizationName,
                             message = msg.content,
                             time = formatToTimeOnly(msg.timestamp)
                         )
-                        Spacer(modifier = Modifier.height(16.dp))
+                        Spacer(modifier = Modifier.height(16.dp))  // Space between messages
                     }
                 }
             }
         }
 
-
+        // Message input and send section
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(bottom = 16.dp),
+                .padding(bottom = 16.dp),   // Padding below input box
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             if (isOwner) {
+                // If user is the owner, show input field and send button
                 CustomBasicTextField(textFieldValue)
+
                 Box(
                     modifier = Modifier
                         .size(40.dp)
-                        .clip(CircleShape)
-                        .background(PrimaryColor)
+                        .clip(CircleShape)                       // Make the send button circular
+                        .background(PrimaryColor)               // Primary color background
                         .clickable {
-                            val text = textFieldValue.value.trim()
-                            val tempValue = textFieldValue.value
+                            val text = textFieldValue.value.trim()     // Get trimmed input text
+                            val tempValue = textFieldValue.value       // Temporarily hold the message
                             if (text.isNotEmpty()) {
-                                textFieldValue.value = ""
+                                textFieldValue.value = ""              // Clear input box
+
+                                // Add message to Firestore or backend
                                 mainViewModel.authAddMessage(
                                     content = text,
                                     senderId = currentUserUid
                                 ) { isSuccess, message ->
                                     if (isSuccess) {
+                                        // If message sent successfully, send push notification
                                         mainViewModel.authSendFcmPushNotification(
                                             context = context,
                                             targetTokens = orgFcmTokens,
@@ -319,20 +328,22 @@ fun EventMessagesTab(
                                             orgName = organizationName
                                         )
                                     } else {
+                                        // Show error toast if message failed to send
                                         Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
                                     }
                                 }
                             }
                         },
-                    contentAlignment = Alignment.Center
+                    contentAlignment = Alignment.Center       // Icon centered inside the button
                 ) {
                     Icon(
                         imageVector = Icons.Default.Send,
-                        contentDescription = null,
-                        tint = Color.White,
+                        contentDescription = null,  // No accessibility description
+                        tint = Color.White,         // White send icon
                     )
                 }
             } else {
+                // If user is not the owner, show a warning message
                 Text(
                     text = "You are not allowed to send messages.",
                     color = Color.Red,
@@ -345,139 +356,158 @@ fun EventMessagesTab(
     }
 }
 
+
 @Composable
 fun EventPeopleTab(
-    membersEmail: List<String>,
-    membersUid: List<String>,
-    mainViewModel: MainViewModel,
+    membersEmail: List<String>, // List of member emails to be displayed
+    membersUid: List<String>,   // Corresponding list of member UIDs
+    mainViewModel: MainViewModel, // ViewModel instance to handle logic like removing a member
 ) {
-    val context = LocalContext.current
-    var showLogoutDialog = remember { mutableStateOf(false) }
-    val uidToRemove = remember { mutableStateOf("") }
-    val removingMemberEmail = remember { mutableStateOf("") }
+    val context = LocalContext.current // Get the current context, although it's not used here
+    var showLogoutDialog = remember { mutableStateOf(false) } // Controls visibility of the confirmation dialog
+    val uidToRemove = remember { mutableStateOf("") } // Holds UID of the member to remove
+    val removingMemberEmail = remember { mutableStateOf("") } // Holds email of the member to remove
 
-
-
+    // Scrollable vertical list of members
     LazyColumn(
         modifier = Modifier
-            .fillMaxSize()
-            .padding(bottom = 16.dp)
+            .fillMaxSize() // Occupy the full height available
+            .padding(bottom = 16.dp) // Add padding at the bottom
     ) {
-        items(membersEmail.size) { index ->
-            val email = membersEmail[index]
-            val uid = membersUid[index]
+        items(membersEmail.size) { index -> // For each member email
+            val email = membersEmail[index] // Get email by index
+            val uid = membersUid[index]     // Get corresponding UID
 
+            // Display each member in a horizontal row
             Row(
                 modifier = Modifier
-                    .padding(start = 16.dp, top = 8.dp, bottom = 8.dp)
-                    .fillMaxWidth()
-                    .background(Color.White),
-                verticalAlignment = Alignment.CenterVertically
+                    .padding(start = 16.dp, top = 8.dp, bottom = 8.dp) // Add padding around the row
+                    .fillMaxWidth() // Make the row full width
+                    .background(Color.White), // Background color for the row
+                verticalAlignment = Alignment.CenterVertically // Vertically align content to center
             ) {
+                // Circular box with the first letter of the email
                 Box(
                     modifier = Modifier
-                        .size(35.dp)
-                        .background(SurfaceColor.copy(0.5f), shape = CircleShape),
-                    contentAlignment = Alignment.Center
+                        .size(35.dp) // Box size
+                        .background(SurfaceColor.copy(0.5f), shape = CircleShape), // Light background with circle shape
+                    contentAlignment = Alignment.Center // Center the content inside
                 ) {
                     Text(
-                        text = email.firstOrNull()?.toString() ?: "",
-                        color = Color.Black
+                        text = email.firstOrNull()?.toString() ?: "", // Display first character of the email or empty
+                        color = Color.Black // Text color
                     )
                 }
 
-                Spacer(modifier = Modifier.width(8.dp))
-                Column {
-                    Text(text = email, fontSize = 16.sp)
-                    Text(text = "Member", fontSize = 14.sp, color = Color.Gray)
-                }
-                Spacer(modifier = Modifier.weight(1f))
+                Spacer(modifier = Modifier.width(8.dp)) // Space between avatar and text
 
+                // Column to display email and a static "Member" label
+                Column {
+                    Text(text = email, fontSize = 16.sp) // Display the email
+                    Text(text = "Member", fontSize = 14.sp, color = Color.Gray) // Static role label
+                }
+
+                Spacer(modifier = Modifier.weight(1f)) // Push delete icon to the end
+
+                // Delete icon button to trigger member removal
                 IconButton(onClick = {
-                    showLogoutDialog.value = true
-                    uidToRemove.value = uid
-                    removingMemberEmail.value = email
+                    showLogoutDialog.value = true // Show the confirmation dialog
+                    uidToRemove.value = uid // Set UID to be removed
+                    removingMemberEmail.value = email // Set email for dialog display
                 }) {
                     Icon(
-                        imageVector = Icons.Default.Delete,
-                        contentDescription = "Remove",
-                        modifier = Modifier.size(18.dp)
+                        imageVector = Icons.Default.Delete, // Delete icon
+                        contentDescription = "Remove", // Accessibility content
+                        modifier = Modifier.size(18.dp) // Icon size
                     )
                 }
             }
 
+            // Divider between members
             HorizontalDivider(
-                modifier = Modifier.padding(horizontal = 16.dp),
-                color = SurfaceColor.copy(0.2f)
+                modifier = Modifier.padding(horizontal = 16.dp), // Padding for divider
+                color = SurfaceColor.copy(0.2f) // Light colored divider
             )
         }
     }
 
+    // Custom confirmation dialog when removing a member
     ConfirmationDialog(
-        title = "Removing Member",
-        text = "Are you sure you want to remove ${removingMemberEmail.value} from organization?",
-        showDialog = showLogoutDialog.value,
-        onDismiss = { showLogoutDialog.value = false },
+        title = "Removing Member", // Dialog title
+        text = "Are you sure you want to remove ${removingMemberEmail.value} from organization?", // Message body
+        showDialog = showLogoutDialog.value, // Whether to show the dialog
+        onDismiss = { showLogoutDialog.value = false }, // Close the dialog when dismissed
         onConfirm = {
-            showLogoutDialog.value = false
-            mainViewModel.authRemoveMemberFromOrganization(uidToRemove.value) { success, message -> }
-
-        })
-
+            showLogoutDialog.value = false // Hide the dialog
+            // Call ViewModel function to remove member by UID
+            mainViewModel.authRemoveMemberFromOrganization(uidToRemove.value) { success, message ->
+                // Result is received here, but not handled
+            }
+        }
+    )
 }
+
 
 
 @Composable
 fun EventSettingsTab(
-    organization: Organization?,
-    currentUser: String,
-    organizationAvatar: Int,
-    mainViewModel: MainViewModel,
-    avatarList: List<Int>,
+    organization: Organization?,           // Nullable organization object containing org info
+    currentUser: String,                   // Current user name or ID (used for display)
+    organizationAvatar: Int,               // Resource ID of the organization's avatar
+    mainViewModel: MainViewModel,          // ViewModel used to update organization avatar
+    avatarList: List<Int>,                 // List of avatar drawable resource IDs
 ) {
+    // Read-only state for organization name (initial value taken from nullable organization)
     val orgName by remember { mutableStateOf(organization?.name ?: "") }
+
+    // Read-only state for organization code (fallback to empty string if null)
     val orgCode by remember { mutableStateOf(organization?.code ?: "") }
+
+    // Controls the visibility of the avatar bottom sheet
     val showBottomSheet = remember { mutableStateOf(false) }
+
+    // A gray color value used for disabled UI elements
     val grayColor = Color.Gray
+
+    // Context used for showing toast messages
     val context = LocalContext.current
 
-
-
+    // Main column layout of the settings screen
     Column(
         modifier = Modifier
-            .fillMaxWidth()
-            .padding(16.dp)
+            .fillMaxWidth()      // Occupies full width
+            .padding(16.dp)      // Adds uniform padding
     ) {
-        // Top center image and edit button
+
+        // Top section: Displays avatar image and an "Edit Icon" button
         Box(
             modifier = Modifier.fillMaxWidth(),
-            contentAlignment = Alignment.Center
+            contentAlignment = Alignment.Center    // Centers the column content horizontally
         ) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Image(
-                    painter = painterResource(organizationAvatar),
+                    painter = painterResource(organizationAvatar),  // Loads the image from resource ID
                     contentDescription = null,
                     modifier = Modifier
-                        .size(60.dp)
-                        .clip(CircleShape)
-                        .background(SurfaceColor.copy(0.5f))
-
+                        .size(60.dp)                         // Image size
+                        .clip(CircleShape)                  // Makes it circular
+                        .background(SurfaceColor.copy(0.5f)) // Applies a background tint
                 )
                 TextButton(onClick = { showBottomSheet.value = !showBottomSheet.value }) {
-                    Text(text = "Edit Icon", color = PrimaryColor)
+                    Text(text = "Edit Icon", color = PrimaryColor)  // Opens avatar selector
                 }
             }
         }
 
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(24.dp))  // Space below avatar section
 
-        // Organization Name
+        // Section for organization name
         Text(text = "Organization name")
         Spacer(modifier = Modifier.height(4.dp))
         OutlinedTextField(
             value = orgName,
-            onValueChange = {},
-            enabled = false,
+            onValueChange = {},          // No change allowed (read-only)
+            enabled = false,             // Disables the field for editing
             modifier = Modifier.fillMaxWidth(),
             placeholder = { Text("Enter organization name", color = grayColor) },
             colors = OutlinedTextFieldDefaults.colors(
@@ -492,13 +522,13 @@ fun EventSettingsTab(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Organization Code
+        // Section for organization code
         Text(text = "Organization Code")
         Spacer(modifier = Modifier.height(4.dp))
         OutlinedTextField(
             value = orgCode,
-            onValueChange = {},
-            enabled = false,
+            onValueChange = {},          // No change allowed
+            enabled = false,             // Disabled input
             modifier = Modifier.fillMaxWidth(),
             placeholder = { Text("Enter organization code", color = grayColor) },
             colors = OutlinedTextFieldDefaults.colors(
@@ -513,15 +543,16 @@ fun EventSettingsTab(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Organization Owner
+        // Section showing the current user as organization admin
         Text(text = "Organization Admin")
-        HorizontalDivider(color = Color.Gray)
+        HorizontalDivider(color = Color.Gray)  // Divider below title
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
+            // Displays the first character of the current user as avatar
             Box(
                 modifier = Modifier
                     .size(35.dp)
@@ -529,28 +560,32 @@ fun EventSettingsTab(
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = currentUser.firstOrNull()?.toString() ?: "",
+                    text = currentUser.firstOrNull()?.toString() ?: "",  // Safe extraction of first character
                     color = Color.Black
                 )
             }
-            Spacer(modifier = Modifier.width(12.dp))
+
+            Spacer(modifier = Modifier.width(12.dp))  // Space between avatar and text
+
             Column {
                 Text(text = currentUser, fontSize = 16.sp, fontWeight = FontWeight.Medium)
-                Text(text = "Admin", fontSize = 14.sp, color = Color.Gray)
+                Text(text = "Admin", fontSize = 14.sp, color = Color.Gray)  // Label as admin
             }
         }
     }
 
+    // Bottom sheet for picking avatar icons
     AvatarPickerBottomSheet(
-        showSheet = showBottomSheet.value,
-        onDismissRequest = { showBottomSheet.value = false },
-        avatarList = avatarList,
-        selectedAvatarIndex = organization?.avatarIndex ?: 0,
-        onAvatarSelected = { selectedIndex ->
+        showSheet = showBottomSheet.value,                 // Controls visibility
+        onDismissRequest = { showBottomSheet.value = false },  // Callback to hide sheet
+        avatarList = avatarList,                           // List of available avatars
+        selectedAvatarIndex = organization?.avatarIndex ?: 0,  // Current selected index
+        onAvatarSelected = { selectedIndex ->              // When new avatar is selected
             mainViewModel.authUpdateOrganizationAvatarIndex(
-                orgId = organization?.id ?: "",
-                newAvatarIndex = selectedIndex,
+                orgId = organization?.id ?: "",            // Org ID or fallback to empty string
+                newAvatarIndex = selectedIndex,            // New avatar index
                 onResult = { success, message ->
+                    // Show toast message with result (success or error)
                     Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
                 }
             )
@@ -559,47 +594,48 @@ fun EventSettingsTab(
 }
 
 
+// Composable function to display a message bubble with organization name, message, and time
 @Composable
 fun MessageBubble(organizationName: String, message: String, time: String) {
 
     Column(
         modifier = Modifier
-            .fillMaxWidth(0.8f)
+            .fillMaxWidth(0.8f) // Bubble width is 80% of screen width
             .background(
-                Color.Gray.copy(alpha = 0.15f),
-                shape = RoundedCornerShape(8.dp)
+                Color.Gray.copy(alpha = 0.15f), // Light gray background with transparency
+                shape = RoundedCornerShape(8.dp) // Rounded corners
             )
     ) {
         Text(
-            text = message,
-            color = Color.Black,
-            fontSize = 16.sp,
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp)
+            text = message, // The message content
+            color = Color.Black, // Text color
+            fontSize = 16.sp, // Font size
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp) // Padding around text
         )
 
         Row(
             modifier = Modifier
-                .fillMaxWidth()
+                .fillMaxWidth() // Row takes full width of bubble
                 .background(
-                    PrimaryColor,
-                    shape = RoundedCornerShape(bottomStart = 8.dp, bottomEnd = 8.dp)
+                    PrimaryColor, // Uses predefined color for footer
+                    shape = RoundedCornerShape(bottomStart = 8.dp, bottomEnd = 8.dp) // Rounded only bottom corners
                 )
-                .padding(horizontal = 12.dp, vertical = 8.dp),
-            horizontalArrangement = Arrangement.SpaceBetween
+                .padding(horizontal = 12.dp, vertical = 8.dp), // Padding inside footer
+            horizontalArrangement = Arrangement.SpaceBetween // Distribute space between elements
         ) {
             Text(
-//                text = organizationName,
-                text = "Admin",
+//                text = organizationName, // This line is commented out and not used
+                text = "Admin", // Static text used instead of organization name
                 fontSize = 16.sp,
-                color = Color.White,
-                fontWeight = FontWeight.Medium,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.weight(1f)
+                color = Color.White, // White text color
+                fontWeight = FontWeight.Medium, // Medium boldness
+                maxLines = 1, // Ensure single-line name
+                overflow = TextOverflow.Ellipsis, // Ellipsis if text is too long
+                modifier = Modifier.weight(1f) // Take remaining space
             )
-            Spacer(Modifier.width(16.dp))
+            Spacer(Modifier.width(16.dp)) // Space between name and time
             Text(
-                text = time,
+                text = time, // Time of message
                 fontSize = 16.sp,
                 color = Color.White,
                 fontWeight = FontWeight.Medium
@@ -608,77 +644,80 @@ fun MessageBubble(organizationName: String, message: String, time: String) {
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+
+// Composable function to display a bottom sheet allowing user to pick an avatar
+@OptIn(ExperimentalMaterial3Api::class) // Opt-in to experimental API
 @Composable
 fun AvatarPickerBottomSheet(
-    showSheet: Boolean,
-    onDismissRequest: () -> Unit,
-    avatarList: List<Int>,
-    selectedAvatarIndex: Int?, // <- new parameter to indicate selected avatar
-    onAvatarSelected: (Int) -> Unit,
+    showSheet: Boolean, // Controls whether the sheet is visible
+    onDismissRequest: () -> Unit, // Callback when sheet is dismissed
+    avatarList: List<Int>, // List of avatar drawable resource IDs
+    selectedAvatarIndex: Int?, // Currently selected avatar index, nullable
+    onAvatarSelected: (Int) -> Unit, // Callback when avatar is selected
 ) {
     val sheetState = rememberModalBottomSheetState(
-        skipPartiallyExpanded = true
+        skipPartiallyExpanded = true // Only allow fully expanded or hidden state
     )
-    val scope = rememberCoroutineScope()
+    val scope = rememberCoroutineScope() // Coroutine scope for launching suspend functions
 
     if (showSheet) {
+        // Show the modal bottom sheet
         ModalBottomSheet(
             onDismissRequest = {
                 scope.launch {
-                    sheetState.hide()
-                    onDismissRequest()
+                    sheetState.hide() // Hide the sheet first
+                    onDismissRequest() // Then call the provided dismiss callback
                 }
             },
             sheetState = sheetState,
-            containerColor = Color.White,
-            shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp),
+            containerColor = Color.White, // Background color of the sheet
+            shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp), // Rounded top corners
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(16.dp)
+                    .padding(16.dp) // Padding inside the sheet
             ) {
                 Text(
-                    text = "Select Avatar",
+                    text = "Select Avatar", // Title
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(bottom = 16.dp)
+                    modifier = Modifier.padding(bottom = 16.dp) // Bottom space below title
                 )
 
-                FlowRow(
+                FlowRow( // A row layout that wraps items to the next line
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalArrangement = Arrangement.spacedBy(16.dp),
-                    maxItemsInEachRow = 3
+                    horizontalArrangement = Arrangement.SpaceBetween, // Even spacing between items
+                    verticalArrangement = Arrangement.spacedBy(16.dp), // Space between rows
+                    maxItemsInEachRow = 3 // Max 3 avatars per row
                 ) {
                     avatarList.forEachIndexed { index, avatarRes ->
-                        val isSelected = selectedAvatarIndex == index
+                        val isSelected = selectedAvatarIndex == index // Check if this avatar is selected
                         Box(
                             modifier = Modifier
-                                .size(80.dp)
-                                .clip(CircleShape)
-                                .background(SurfaceColor.copy(0.5f))
+                                .size(80.dp) // Box size
+                                .clip(CircleShape) // Make the avatar circular
+                                .background(SurfaceColor.copy(0.5f)) // Semi-transparent background
                                 .border(
-                                    width = if (isSelected) 2.dp else 0.dp,
-                                    color = if (isSelected) PrimaryColor else Color.Transparent,
+                                    width = if (isSelected) 2.dp else 0.dp, // Border if selected
+                                    color = if (isSelected) PrimaryColor else Color.Transparent, // Color based on selection
                                     shape = CircleShape
                                 )
                                 .clickable {
                                     scope.launch {
-                                        sheetState.hide()
-                                        onAvatarSelected(index)
-                                        onDismissRequest()
+                                        sheetState.hide() // Hide sheet on click
+                                        onAvatarSelected(index) // Notify selection
+                                        onDismissRequest() // Close the sheet
                                     }
                                 },
-                            contentAlignment = Alignment.Center
+                            contentAlignment = Alignment.Center // Center avatar inside box
                         ) {
                             Image(
-                                painter = painterResource(id = avatarRes),
-                                contentDescription = "Avatar $index",
+                                painter = painterResource(id = avatarRes), // Load avatar image
+                                contentDescription = "Avatar $index", // Accessibility label
                                 modifier = Modifier
-                                    .size(70.dp)
-                                    .clip(CircleShape)
+                                    .size(70.dp) // Slightly smaller than box
+                                    .clip(CircleShape) // Make image circular
                             )
                         }
                     }

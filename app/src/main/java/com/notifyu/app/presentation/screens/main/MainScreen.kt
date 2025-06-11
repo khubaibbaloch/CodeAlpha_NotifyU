@@ -71,60 +71,61 @@ import com.notifyu.app.presentation.viewmodel.states.AuthNavEvent
 import kotlinx.coroutines.launch
 
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class) // Opt-in to experimental Material3 API
 @Composable
 fun MainScreen(
-    navController: NavHostController,
-    mainViewModel: MainViewModel,
-    startDestination: String,
+    navController: NavHostController,        // Navigation controller to handle app screen navigation
+    mainViewModel: MainViewModel,            // ViewModel holding app logic and state
+    startDestination: String,                // Initial screen route when navigation starts
 ) {
+    // MVVM-related context
+    val context = LocalContext.current                        // Get the current context
+    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed) // Drawer state (opened or closed)
+    val scope = rememberCoroutineScope()                      // Scope for launching coroutines
 
-    // AFTER MVVM
-    val context = LocalContext.current
-    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
-    val scope = rememberCoroutineScope()
+    var isMenuExpanded = remember { mutableStateOf(false) }   // Whether the dropdown menu is expanded
+    var showLogoutDialog = remember { mutableStateOf(false) } // Whether to show the logout confirmation dialog
+    var showBottomSheet by remember { mutableStateOf(false) } // Whether to show the join/create org bottom sheet
 
-    var isMenuExpanded = remember { mutableStateOf(false) }
-    var showLogoutDialog = remember { mutableStateOf(false) }
-    var showBottomSheet by remember { mutableStateOf(false) }
-
-
+    // Collecting UI state from the ViewModel
     val currentUser by mainViewModel.currentUser.collectAsState()
     val navEvent by mainViewModel.navigation.collectAsState()
     val organizations by mainViewModel.organizationsOwned.collectAsState()
     val organizationId by mainViewModel.onOrganizationsClick.collectAsState()
     val organizationsMemberOf by mainViewModel.organizationsMemberOf.collectAsState()
     val currentBackStackEntry by navController.currentBackStackEntryAsState()
-    val currentRoute = currentBackStackEntry?.destination?.route
+    val currentRoute = currentBackStackEntry?.destination?.route // Current screen route
 
-
+    // Get the selected organization based on its ID
     val selectedOrganization = remember(organizations, organizationsMemberOf, organizationId) {
-        organizations.find { it.id == organizationId }
-            ?: organizationsMemberOf.find { it.id == organizationId }
+        organizations.find { it.id == organizationId } ?: organizationsMemberOf.find { it.id == organizationId }
     }
+
+    // Check if current user is the owner of the selected organization
     val isOwner = remember(selectedOrganization, currentUser) {
         selectedOrganization?.owner == currentUser?.uid
     }
 
-
+    // Get list of avatars (not shown in this code, assumed to be defined elsewhere)
     val avatarList = getAvatarList()
 
-
+    // Navigation drawer layout
     ModalNavigationDrawer(
         modifier = Modifier
             .statusBarsPadding()
-            .windowInsetsPadding(WindowInsets.navigationBars),
-        drawerState = drawerState,
-        gesturesEnabled = drawerState.isOpen,
+            .windowInsetsPadding(WindowInsets.navigationBars), // Adjust for system bars
+        drawerState = drawerState,               // Attach state
+        gesturesEnabled = drawerState.isOpen,    // Enable gestures only when open
         drawerContent = {
+            // Drawer UI
             Column(
                 modifier = Modifier
                     .fillMaxHeight()
                     .fillMaxWidth(0.8f)
                     .background(Color.White)
                     .padding(8.dp)
-
             ) {
+                // Header row showing user email and settings icon
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -133,7 +134,7 @@ fun MainScreen(
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Text(
-                        text = "${currentUser?.email}",
+                        text = "${currentUser?.email}", // Show current user's email
                         fontSize = 14.sp,
                         fontWeight = FontWeight.W300
                     )
@@ -146,20 +147,19 @@ fun MainScreen(
                                 )
                             }
                         },
-                        modifier = Modifier
-                            .size(30.dp)
+                        modifier = Modifier.size(30.dp)
                     ) {
                         Icon(
                             painter = painterResource(R.drawable.ic_setting),
                             contentDescription = null,
-                            modifier = Modifier
-                                .size(20.dp)
-
+                            modifier = Modifier.size(20.dp)
                         )
                     }
-
                 }
+
                 Spacer(modifier = Modifier.padding(vertical = 24.dp))
+
+                // Option to add organization
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -179,8 +179,10 @@ fun MainScreen(
                         fontWeight = FontWeight.W400
                     )
                 }
+
                 Spacer(modifier = Modifier.padding(vertical = 24.dp))
 
+                // List of organizations owned by user
                 DrawerOrganizationList(
                     title = "Organization Owned",
                     organizations = organizations,
@@ -196,6 +198,7 @@ fun MainScreen(
 
                 Spacer(modifier = Modifier.padding(vertical = 8.dp))
 
+                // List of organizations the user is a member of
                 DrawerOrganizationList(
                     title = "Organization Joined",
                     organizations = organizationsMemberOf,
@@ -208,44 +211,41 @@ fun MainScreen(
                         }
                     }
                 )
-
-
             }
 
+            // Bottom sheet to join or create org
 //            if (showBottomSheet) {
-                JoinCreateOrgBottomSheet(
-                    onCreateClick = {
-                        scope.launch {
-                            showBottomSheet = false
-                            drawerState.close()
-                            mainViewModel.updateAddOrg(true)
-                            if (currentRoute != MainScreenRoutes.CreateJoinOrgScreen.route) {
-                                navController.navigate(MainScreenRoutes.CreateJoinOrgScreen.route)
-                            }
+            JoinCreateOrgBottomSheet(
+                onCreateClick = {
+                    scope.launch {
+                        showBottomSheet = false
+                        drawerState.close()
+                        mainViewModel.updateAddOrg(true)
+                        if (currentRoute != MainScreenRoutes.CreateJoinOrgScreen.route) {
+                            navController.navigate(MainScreenRoutes.CreateJoinOrgScreen.route)
                         }
-
-                    },
-                    onJoinClick = {
-                        scope.launch {
-                            showBottomSheet = false
-                            drawerState.close()
-                            mainViewModel.updateAddOrg(false)
-                            if (currentRoute != MainScreenRoutes.CreateJoinOrgScreen.route) {
-                                navController.navigate(MainScreenRoutes.CreateJoinOrgScreen.route)
-                            }
+                    }
+                },
+                onJoinClick = {
+                    scope.launch {
+                        showBottomSheet = false
+                        drawerState.close()
+                        mainViewModel.updateAddOrg(false)
+                        if (currentRoute != MainScreenRoutes.CreateJoinOrgScreen.route) {
+                            navController.navigate(MainScreenRoutes.CreateJoinOrgScreen.route)
                         }
-
-                    },
-                    showSheet = showBottomSheet,
-                    onDismissRequest = { showBottomSheet = false }
-                )
+                    }
+                },
+                showSheet = showBottomSheet,
+                onDismissRequest = { showBottomSheet = false }
+            )
 //            }
-
-
-        }) {
-
+        }
+    ) {
+        // Main screen content inside Scaffold
         Scaffold(
             topBar = {
+                // Conditionally set top bar based on current screen
                 when (currentRoute) {
                     MainScreenRoutes.ChatScreen.route -> {
                         EventChatScreenTopBar(
@@ -256,7 +256,6 @@ fun MainScreen(
                             onLeaveClick = {
                                 isMenuExpanded.value = false
                                 showLogoutDialog.value = true
-//
                             },
                             showLogoutDialog = showLogoutDialog,
                             onConfirm = {
@@ -274,26 +273,12 @@ fun MainScreen(
                         )
                     }
 
-                    MainScreenRoutes.HomeScreen.route -> {
-                        MainScreenTopBar(
-                            title = "Notifyu",
-                            onNavigationClick = { scope.launch { drawerState.open() } },
-                            hasElevation = false,
-                            isDropDownMenuClicked = isMenuExpanded.value,
-                            onMoreVertClick = { isMenuExpanded.value = true },
-                            onDismissRequest = { isMenuExpanded.value = false },
-                            onLeaveClick = {
-                                isMenuExpanded.value = false
-                                navController.navigate(SettingScreenRoutes.SettingScreen.route)
-                            }
-                        )
-                    }
-
+                    MainScreenRoutes.HomeScreen.route,
                     MainScreenRoutes.CreateJoinOrgScreen.route -> {
                         MainScreenTopBar(
                             title = "Notifyu",
                             onNavigationClick = { scope.launch { drawerState.open() } },
-                            hasElevation = true,
+                            hasElevation = currentRoute == MainScreenRoutes.CreateJoinOrgScreen.route,
                             isDropDownMenuClicked = isMenuExpanded.value,
                             onMoreVertClick = { isMenuExpanded.value = true },
                             onDismissRequest = { isMenuExpanded.value = false },
@@ -325,8 +310,8 @@ fun MainScreen(
                     AuthScreenRoutes.LoginScreen.route,
                     AuthScreenRoutes.SignupScreen.route,
                     AuthScreenRoutes.ResetPasswordScreen.route,
-                    AuthScreenRoutes.VerifyEmailScreen.route,
-                        -> {
+                    AuthScreenRoutes.VerifyEmailScreen.route -> {
+                        // Do nothing – no top bar for these routes
                     }
 
                     else -> {
@@ -348,10 +333,10 @@ fun MainScreen(
         ) { innerPadding ->
             Column(
                 modifier = Modifier
-                    .padding(top = innerPadding.calculateTopPadding())
-                    .windowInsetsPadding(WindowInsets.navigationBars)
+                    .padding(top = innerPadding.calculateTopPadding()) // Adjust for top padding
+                    .windowInsetsPadding(WindowInsets.navigationBars) // Adjust for navigation bar
             ) {
-                RootNavHost(
+                RootNavHost( // Root navigator that handles all routes
                     navHostController = navController,
                     mainViewModel = mainViewModel,
                     startDestination = startDestination
@@ -362,6 +347,7 @@ fun MainScreen(
 }
 
 
+// Used in MainScreen to display list of organizations
 @Composable
 fun DrawerOrganizationList(
     title: String,
@@ -369,12 +355,15 @@ fun DrawerOrganizationList(
     avatarList: List<Int>,
     onOrganizationClick: (Organization) -> Unit,
 ) {
-    // Step 1: Sort and Limit to 5
+    // Sort organizations by the most recent message timestamp and limit to 5 entries
     val sortedOrgs = organizations
         .sortedByDescending { it.lastMessage?.timestamp ?: 0L }
         .take(5)
 
+    // LazyColumn to display the list
     LazyColumn(modifier = Modifier.fillMaxWidth()) {
+
+        // Header title
         item {
             Column(
                 modifier = Modifier
@@ -390,18 +379,21 @@ fun DrawerOrganizationList(
             }
         }
 
+        // Spacer between title and list items
         item {
             Spacer(modifier = Modifier.padding(vertical = 4.dp))
         }
 
+        // List items for each organization
         items(sortedOrgs) { organization ->
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable { onOrganizationClick(organization) }
+                    .clickable { onOrganizationClick(organization) } // Handle click event
                     .padding(vertical = 8.dp, horizontal = 4.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
+                // Display organization avatar
                 Image(
                     painter = painterResource(avatarList[organization.avatarIndex]),
                     contentDescription = null,
@@ -410,7 +402,11 @@ fun DrawerOrganizationList(
                         .clip(CircleShape)
                         .background(SurfaceColor.copy(0.5f))
                 )
+
+                // Spacer between image and text
                 Spacer(modifier = Modifier.width(8.dp))
+
+                // Display organization name
                 Text(text = organization.name, fontSize = 14.sp)
             }
         }
